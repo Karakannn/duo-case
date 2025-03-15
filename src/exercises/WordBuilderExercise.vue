@@ -8,13 +8,24 @@
             <span class="text-span" v-for="(word, index) in englishSentence" :key="index">{{ word }}</span>
           </p>
         </div>
-        <div ref="destinationContainer" class="destination-container"></div>
+        <div ref="destinationContainer" class="destination-container">
+          <!-- Words will be positioned here via transform -->
+        </div>
       </div>
       <div ref="originContainer" class="origin-container">
-        <div v-for="(word, index) in wordList" :key="index" class="word" :style="wordStyles[index]"
-          @click="handleWordClick(index)">
-          {{ word }}
-        </div>
+        <Word 
+          v-for="(word, index) in wordList" 
+          :key="index" 
+          :text="word" 
+          :index="index"
+          :destination-container-ref="destinationContainer"
+          :word-positions="wordPositionsArray"
+          :initial-location="getInitialLocation(index)"
+          @click="handleWordClick"
+          @location-change="handleLocationChange"
+          @word-positioned="handleWordPositioned"
+          ref="wordComponents"
+        />
       </div>
     </div>
     <!-- Footer is provided by MainLayout -->
@@ -22,13 +33,16 @@
 </template>
 
 <script>
+import Word from '../components/words/Word.vue';
+
 export default {
   name: 'WordBuilderExercise',
   components: {
+    Word
   },
   emits: ['complete'],
   setup(props, { emit }) {
-    const { ref, reactive, computed, onMounted, watch } = Vue;
+    const { ref, reactive, computed, onMounted, watch, nextTick } = Vue;
 
     // State
     const title = ref("Write this in Spanish");
@@ -39,10 +53,10 @@ export default {
     const englishSentence = ref([]);
     const destinationContainer = ref(null);
     const originContainer = ref(null);
-    const destinationPosDefault = ref(null);
-    const originArray = reactive([]);
-    const destinationArray = reactive([]);
-    const wordStyles = reactive({});
+    const wordComponents = ref([]);
+    const wordPositionsArray = reactive([]);
+    const destinationWords = reactive([]);
+    const exerciseInitialized = ref(false);
 
     // Sample exercises
     const exercises = [
@@ -65,10 +79,26 @@ export default {
 
     // Computed properties
     const correctAnswer = computed(() => currentExercise.value?.spanish || '');
-    const userAnswer = computed(() => destinationArray.map(w => w.word).join(' '));
+    const userAnswer = computed(() => {
+      const wordsInDestination = wordPositionsArray
+        .filter(w => w && w.location === 'destination')
+        .sort((a, b) => a.position.x - b.position.x);
+      
+      console.log('Computing userAnswer, words in destination:', wordsInDestination);
+      return wordsInDestination.map(w => w.word).join(' ');
+    });
 
-    // Watch for destination array changes to update MainLayout canCheck state
-    watch(destinationArray, (newArray) => {
+    // Helper function to get word location
+    const getInitialLocation = (index) => {
+      if (!exerciseInitialized.value) return 'origin';
+      const inDestination = destinationWords.findIndex(w => w.index === index) !== -1;
+      console.log(`getInitialLocation for index ${index}: ${inDestination ? 'destination' : 'origin'}`);
+      return inDestination ? 'destination' : 'origin';
+    };
+    
+    // Watch for destination words changes to update MainLayout canCheck state
+    watch(destinationWords, (newArray) => {
+      console.log('destinationWords changed:', newArray);
       if (window.mainLayout) {
         window.mainLayout.canCheck.value = newArray.length > 0;
       }
@@ -77,88 +107,84 @@ export default {
     // Select random exercise and prepare words
     const initializeExercise = () => {
       try {
+        console.log('Initializing exercise');
+        exerciseInitialized.value = false;
+        
         // Reset arrays and select exercise
-        destinationArray.length = 0;
-        originArray.length = 0;
+        destinationWords.length = 0;
+        wordPositionsArray.length = 0;
+        
         currentExercise.value = exercises[Math.floor(Math.random() * exercises.length)];
         englishSentence.value = currentExercise.value.english.split(" ");
         wordList.value = [...currentExercise.value.list];
-
-        // Get container position and initialize styles
-        if (destinationContainer.value) {
-          destinationPosDefault.value = destinationContainer.value.getBoundingClientRect();
-        }
-
-        // Reset word styling
-        wordList.value.forEach((_, i) => wordStyles[i] = { transform: 'translate(0px, 0px)' });
-
-        // Update word positions after DOM render
-        setTimeout(updateWordPositions, 50);
+        
+        console.log('Exercise initialized with wordList:', wordList.value);
+        
+        // Need to wait for DOM update before marking as initialized
+        nextTick(() => {
+          console.log('Exercise fully initialized');
+          exerciseInitialized.value = true;
+        });
       } catch (error) {
         console.error("Error initializing exercise:", error);
       }
     };
 
-    // Calculate word positions for movement
-    const updateWordPositions = () => {
-      const words = document.querySelectorAll('.word');
-      if (!words.length) return;
-
-      originArray.length = 0;
-      words.forEach((word, i) => {
-        const pos = word.getBoundingClientRect();
-        originArray.push({
-          x: pos.x, y: pos.y, width: pos.width, height: pos.height,
-          word: wordList.value[i], location: "origin", index: i
-        });
-      });
+    // Handle word positioning events from Word components
+    const handleWordPositioned = (wordData) => {
+      const { index, position, location, word } = wordData;
+      console.log(`Word ${index} positioned at ${location}:`, position);
+      
+      // Update position in our tracking array
+      wordPositionsArray[index] = {
+        index,
+        position,
+        location,
+        word
+      };
     };
 
-    // Calculate next word position in destination
-    const getDestinationPosition = () => {
-      if (destinationArray.length === 0) return destinationPosDefault.value.x;
-
-      return destinationArray.reduce(
-        (sum, el) => sum + el.width + 20,
-        destinationPosDefault.value.x
-      );
+    // Handle word click events
+    const handleWordClick = (wordData) => {
+      const { index, location } = wordData;
+      console.log(`Word ${index} clicked, location: ${location}`);
+      // All logic is now in the Word component
     };
 
-    // Handle clicking on a word
-    const handleWordClick = (index) => {
-      if (!originArray[index]) return;
-
-      const destPos = getDestinationPosition();
-      const wordObj = originArray[index];
-
-      // Calculate movement distance
-      let yTravel = wordObj.y - (destinationPosDefault.value.y +
-        (destinationPosDefault.value.height - wordObj.height) / 2);
-
-      let xTravel = wordObj.x > destPos
-        ? -(wordObj.x - destPos)
-        : destPos - wordObj.x;
-
-      // Move word between containers
-      if (wordObj.location === "origin") {
-        wordObj.location = "destination";
-        destinationArray.push({ ...wordObj });
+    // Handle location changes from Word component
+    const handleLocationChange = (wordData) => {
+      const { index, location, position } = wordData;
+      console.log(`Word ${index} location changed to ${location}`);
+      
+      // Update our tracking of destination words
+      if (location === 'destination') {
+        // Add to destination if not already there
+        if (destinationWords.findIndex(w => w.index === index) === -1) {
+          console.log(`Adding word ${index} to destination`);
+          destinationWords.push({ 
+            index,
+            word: wordList.value[index],
+            position
+          });
+        }
       } else {
-        yTravel = 0;
-        xTravel = 0;
-        wordObj.location = "origin";
-
-        const idx = destinationArray.findIndex(w => w.index === index);
-        if (idx !== -1) destinationArray.splice(idx, 1);
+        // Remove from destination
+        const idx = destinationWords.findIndex(w => w.index === index);
+        if (idx !== -1) {
+          console.log(`Removing word ${index} from destination`);
+          destinationWords.splice(idx, 1);
+        }
       }
-
-      // Apply transform and update UI state
-      wordStyles[index] = { transform: `translate(${xTravel}px, -${yTravel}px)` };
+      
+      // Update word position in our tracking array
+      if (wordPositionsArray[index]) {
+        wordPositionsArray[index].location = location;
+      }
     };
 
     // Check if answer is correct
     const checkAnswer = () => {
-      if (destinationArray.length === 0) return false;
+      if (destinationWords.length === 0) return false;
 
       isCorrect.value = userAnswer.value === correctAnswer.value;
       showResult.value = true;
@@ -227,24 +253,20 @@ export default {
       };
 
       reset();
-
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        if (destinationContainer.value) {
-          destinationPosDefault.value = destinationContainer.value.getBoundingClientRect();
-        }
-        updateWordPositions();
-      });
     });
 
     return {
       title,
       wordList,
       englishSentence,
-      wordStyles,
       destinationContainer,
       originContainer,
+      wordComponents,
+      wordPositionsArray,
       handleWordClick,
+      handleLocationChange,
+      handleWordPositioned,
+      getInitialLocation,
       checkAnswer,
       handleSkip
     };
@@ -329,24 +351,5 @@ export default {
   flex-wrap: wrap;
 }
 
-.word {
-  position: relative;
-  border: 1px solid var(--grey-color);
-  background-color: white;
-  margin: 0 0.2em;
-  padding: 0.5em 1em;
-  border-radius: var(--border-radius);
-  box-shadow: 0px 3px 0px 0px var(--grey-color);
-  transition: 0.2s transform ease-in-out;
-  cursor: pointer;
-  z-index: 1;
-  font-size: 1.2em;
-  font-weight: 400;
-  color: var(--text-color);
-}
-
-.word:active {
-  transform: translateY(2px);
-  box-shadow: none;
-}
+/* Word styles moved to Word.vue component */
 </style>
