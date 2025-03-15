@@ -4,26 +4,45 @@
 
   // Global olarak erişilebilir StepStore fonksiyonu
   window.useStepStore = function() {
-    // Tüm egzersiz adımlarını tek bir yerde tanımla
-    const EXERCISE_STEPS = reactive([
-      { id: 1, name: 'word-builder', component: 'WordBuilderExercise', title: 'Cümle Oluştur', progressPercentage: 25 },
-      { id: 2, name: 'picture-match', component: 'PictureMatchExercise', title: 'Resimli Kelime Eşleştirme', progressPercentage: 50 },
-      { id: 3, name: 'word-match', component: 'MatchingExercise', title: 'Doğru Çeviriyi Seç', progressPercentage: 75 },
-      { id: 4, name: 'fill-in-blank', component: 'FillInBlankExercise', title: 'Boşluk Doldurma', progressPercentage: 100 }
-    ]);
+    // Egzersiz türlerini merkezileştirilmiş exerciseTypes dizisinden al
+    const EXERCISE_STEPS = computed(() => {
+      // Eğer useExercise.js henüz yüklenmemişse boş dizi döndür
+      if (!window.exerciseTypes) return [];
+      
+      // Aktif sıralamayı kullanarak adım listesini oluştur
+      // getActiveSequenceExercises fonksiyonu useExercise.js'den geliyor
+      const sequenceExercises = window.getActiveSequenceExercises 
+        ? window.getActiveSequenceExercises() 
+        : [...window.exerciseTypes];
+      
+      // Sıralama dizisini kullanarak adım listesini oluştur
+      return sequenceExercises.map((exercise, index) => ({
+        id: index + 1,
+        name: exercise.id,
+        component: exercise.component,
+        title: exercise.name,
+        description: exercise.description,
+        icon: exercise.icon,
+        progressPercentage: Math.round(((index + 1) / sequenceExercises.length) * 100)
+      }));
+    });
 
     // Durum değişkenleri
     const currentStepId = ref(1);
     const hearts = ref(5);
     const score = ref(0);
+    
+    // Aktif sıralama
+    const activeSequence = ref("default");
 
     // Hesaplanan özellikler
     const currentStep = computed(() => {
-      return EXERCISE_STEPS.find(step => step.id === currentStepId.value) || EXERCISE_STEPS[0];
+      if (EXERCISE_STEPS.value.length === 0) return null;
+      return EXERCISE_STEPS.value.find(step => step.id === currentStepId.value) || EXERCISE_STEPS.value[0];
     });
 
-    const currentProgress = computed(() => currentStep.value.progressPercentage);
-    const totalSteps = computed(() => EXERCISE_STEPS.length);
+    const currentProgress = computed(() => currentStep.value ? currentStep.value.progressPercentage : 0);
+    const totalSteps = computed(() => EXERCISE_STEPS.value.length);
 
     // Adım yönetim metodları
     function setStep(stepId) {
@@ -47,6 +66,17 @@
         currentStepId.value--;
       }
       return currentStep.value;
+    }
+    
+    // Egzersiz sıralamasını değiştir
+    function changeSequence(sequenceName) {
+      if (window.setActiveSequence && window.setActiveSequence(sequenceName)) {
+        activeSequence.value = sequenceName;
+        // İlk adıma geri dön
+        currentStepId.value = 1;
+        return true;
+      }
+      return false;
     }
 
     // Puan ve can yönetimi
@@ -84,6 +114,10 @@
     function getTotalSteps() {
       return totalSteps.value;
     }
+    
+    function getActiveSequence() {
+      return activeSequence.value;
+    }
 
     // Store API'sını döndür
     return {
@@ -94,12 +128,14 @@
       totalSteps,
       hearts,
       score,
+      activeSequence,
       allSteps: readonly(EXERCISE_STEPS),
 
       // Metodlar
       setStep,
       nextStep,
       previousStep,
+      changeSequence,
       decreaseHearts,
       increaseScore,
 
@@ -109,7 +145,8 @@
       getCurrentStepInfo,
       getHearts,
       getScore,
-      getTotalSteps
+      getTotalSteps,
+      getActiveSequence
     };
   };
 
@@ -132,12 +169,14 @@
         getCurrentStep: () => globalStepStore.getCurrentStep(),
         getTotalSteps: () => globalStepStore.getTotalSteps(),
         getCurrentStepInfo: () => globalStepStore.getCurrentStepInfo(),
+        getActiveSequence: () => globalStepStore.getActiveSequence(),
         
         // Actions
         setCurrentStep: (stepId) => globalStepStore.setStep(stepId),
         decreaseHearts: () => globalStepStore.decreaseHearts(),
         increaseScore: (points) => globalStepStore.increaseScore(points),
         nextStep: () => globalStepStore.nextStep(),
+        changeSequence: (sequenceName) => globalStepStore.changeSequence(sequenceName),
         
         // Eski state ile uyumluluk için alanlar
         _state: {
@@ -146,7 +185,8 @@
           get score() { return globalStepStore.score.value; },
           get currentStep() { return globalStepStore.currentStepId.value; },
           get totalSteps() { return globalStepStore.totalSteps.value; },
-          get steps() { return [...globalStepStore.allSteps]; }
+          get steps() { return [...globalStepStore.allSteps.value]; },
+          get activeSequence() { return globalStepStore.activeSequence.value; }
         }
       };
     }

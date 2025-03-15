@@ -1,29 +1,23 @@
 <template>
   <div class="exercise-component">
-    <div v-if="audioWord" class="audio-container mb-4 text-center">
-      <div class="audio-button">
-        <span class="badge bg-primary rounded-pill fs-5 px-4 py-2">
-          <i class="fas fa-volume-up me-2"></i>
-          <span>{{ audioWord }}</span>
-        </span>
+    <div class="title-container text-center mb-4">
+      <h5 class="text-white">{{ title }}</h5>
+      <div v-if="audioWord" class="audio-badge badge bg-primary rounded-pill fs-5 px-4 py-2 mt-3">
+        <i class="fas fa-volume-up me-2"></i>
+        <span>{{ audioWord }}</span>
       </div>
     </div>
     
-    <div class="row g-3">
-      <div v-for="(option, index) in options" :key="index" class="col-6">
-        <div 
-          :class="['option-card', 'card', 'p-3', 'h-100', 'text-center', 
-                  selected === index ? 'selected' : '',
-                  exercise.showResult && index === selected ? (exercise.isCorrect ? 'correct' : 'incorrect') : '']"
-          @click="!exercise.showResult && selectOption(index)"
-        >
-          <div class="option-image mb-2">
-            <img :src="option.image" :alt="option.text" class="img-fluid mx-auto" style="max-height: 100px;">
-          </div>
-          <div class="option-text">
-            {{ option.text }}
-          </div>
-        </div>
+    <div class="options-grid">
+      <div 
+        v-for="(option, index) in options" 
+        :key="index"
+        class="option-item"
+        :class="{ 'selected': selected === index }"
+        @click="selectOption(index)"
+      >
+        <img :src="option.image" :alt="option.text" class="option-image">
+        <div class="option-text">{{ option.text }}</div>
       </div>
     </div>
   </div>
@@ -38,6 +32,12 @@ export default {
   setup(props, { emit }) {
     const { ref, computed, onMounted, watch } = Vue;
     
+    // Merkezi store ve exercise manager'ı kullan
+    const stepStore = window.useStepStore();
+    const exerciseManager = window.useExercise({
+      exerciseName: 'picture-match'
+    });
+    
     // State
     const title = "Bunlardan hangisi \"çay\"?";
     const audioWord = "çay";  // This would be the word played in audio
@@ -49,20 +49,11 @@ export default {
     const correctIndex = 2; // "tea" is correct (index 2)
     const selected = ref(null);
     
-    // useExercise composable'ını kullan
-    const exercise = window.useExercise({
-      exerciseName: 'PictureMatchExercise',
-      correctAnswerFn: () => selected.value === correctIndex,
-      validateFn: () => selected.value !== null,
-      resetStateFn: () => {
-        selected.value = null;
-      },
-      emit
-    });
-    
     // Seçim değiştiğinde check butonunu güncelle
     watch(selected, val => { 
-      exercise.updateMainLayout(!!val);
+      if (window.mainLayout) {
+        window.mainLayout.canCheck.value = val !== null;
+      }
     });
     
     // Seçenek seçme
@@ -70,59 +61,111 @@ export default {
       selected.value = index;
     };
     
+    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
+    function checkAnswer() {
+      // Eşleştirme egzersizi için, şu an sadece tek bir seçenek var
+      // Gerçek bir resim eşleştirme senaryosunda multiple seçimler olabilir
+      // ve bunlar bir dizi olarak geçirilebilir
+      const selectedPairs = [{ id: "çay", matchId: options.value[selected.value].text }];
+      const correctPairs = [{ id: "çay", matchId: "tea" }];
+      
+      // exerciseManager'a gerekli parametreleri gönder
+      return exerciseManager.checkAnswer({
+        selectedPairs: selectedPairs,
+        correctPairs: correctPairs
+      });
+    }
+    
+    // Durum sıfırlama
+    function resetState() {
+      selected.value = null;
+      exerciseManager.reset();
+    }
+    
+    // Bir sonraki egzersize geç
+    function onContinue() {
+      // Önce kendimizi sıfırlayalım
+      resetState();
+      
+      // Sonra bir sonraki adıma geçelim
+      if (window.mainLayout && window.mainLayout.nextExercise) {
+        window.mainLayout.nextExercise();
+      }
+    }
+    
+    // Bileşen yüklendiğinde
+    onMounted(() => {
+      resetState();
+      
+      // Global değişkene referans ekle - MainLayout'un erişmesi için
+      window.activeExerciseComponent = {
+        checkAnswer,
+        onContinue,
+        renderResultContent: exerciseManager.renderResultContent
+      };
+    });
+    
     return {
       title,
       audioWord,
       options,
       selected,
       selectOption,
-      ...exercise
+      showResult: exerciseManager.showResult
     };
   }
 }
 </script>
 
 <style scoped>
-.option-card {
+.title-container {
+  margin-bottom: 30px;
+}
+
+.audio-badge {
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: #2a2a2a;
-  color: white;
-  border: 2px solid transparent;
-}
-
-.option-card:hover:not(.selected) {
-  border-color: #4b4b4b;
-  transform: translateY(-2px);
-}
-
-.option-card.selected {
-  border-color: #58a700;
-  background-color: #1d3b05;
-}
-
-.option-card.correct {
-  border-color: #58a700;
-  background-color: #1d3b05;
-}
-
-.option-card.incorrect {
-  border-color: #ea2b2b;
-  background-color: #3b1515;
-}
-
-.audio-button {
   display: inline-block;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.option-item {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 15px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.audio-button:hover {
-  transform: scale(1.05);
+.option-item:hover {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
-.audio-container {
-  margin-top: 10px;
-  margin-bottom: 20px;
+.option-item.selected {
+  border-color: #58a700;
+  background-color: rgba(88, 167, 0, 0.2);
+}
+
+.option-image {
+  max-width: 100%;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 15px;
+}
+
+.option-text {
+  color: white;
+  font-size: 1.1rem;
+  text-align: center;
 }
 </style>

@@ -68,11 +68,16 @@
 export default {
   name: 'MatchingExercise',
   components: {
-    // ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions))
   },
   emits: ['complete'],
   setup(props, { emit }) {
     const { ref, computed, onMounted, watch } = Vue;
+    
+    // Merkezi store ve exercise manager'ı kullan
+    const stepStore = window.useStepStore();
+    const exerciseManager = window.useExercise({
+      exerciseName: 'picture-match' // Aynı doğrulayıcıyı kullanabiliriz, çünkü mantık benzer
+    });
     
     // State
     const title = "Eşleştirmeleri tamamlayın";
@@ -113,7 +118,6 @@ export default {
     const matches = ref([]);
     
     // İlerleme durumu
-    const isCorrect = ref(false);
     const isComplete = computed(() => matches.value.length === leftItems.value.length);
     
     // Bir öğenin eşleştirilip eşleştirilmediğini kontrol et
@@ -150,14 +154,6 @@ export default {
         // Seçimleri sıfırla
         selectedLeft.value = null;
         selectedRight.value = null;
-        
-        // Tüm öğeler eşleştirildi mi kontrol et
-        if (isComplete.value) {
-          checkAllMatches();
-        }
-        
-        // Check butonu aktif edilsin
-        if (window.mainLayout) window.mainLayout.canCheck.value = true;
       }
     };
     
@@ -170,110 +166,70 @@ export default {
       return (index * (itemHeight + itemMargin)) + (itemHeight / 2);
     };
     
-    // Tüm eşleştirmelerin doğru olup olmadığını kontrol et
-    const checkAllMatches = () => {
-      // Her eşleşme doğru mu kontrol et
-      const allCorrect = matches.value.every(match => {
-        const leftId = leftItems.value[match.leftIndex].id;
-        const rightId = rightItems.value[match.rightIndex].id;
-        return correctMatches.some(cm => cm.leftId === leftId && cm.rightId === rightId);
+    // Kullanıcı eşleştirmelerini doğru eşleştirmelerle karşılaştır
+    const getUserMatchesAsValidatedPairs = () => {
+      // Kullanıcı eşleştirmelerini pairs formatında oluştur
+      return matches.value.map(match => {
+        return {
+          id: leftItems.value[match.leftIndex].id,
+          matchId: rightItems.value[match.rightIndex].id
+        };
       });
-      
-      isCorrect.value = allCorrect;
     };
     
-    // Check answer - called by MainLayout
-    const checkAnswer = () => {
-      console.log('MatchingExercise - checkAnswer() çağrıldı');
-      
+    // Doğru eşleştirmeleri pairs formatında oluştur
+    const getCorrectPairs = () => {
+      return correctMatches.map(match => {
+        return {
+          id: match.leftId,
+          matchId: match.rightId
+        };
+      });
+    };
+    
+    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
+    function checkAnswer() {
       // Tüm eşleştirmeler yapılmadıysa, işlem yapma
       if (!isComplete.value) {
-        console.log('MatchingExercise - Tüm eşleştirmeler tamamlanmadı!');
-        return false;
+        return null;
       }
       
-      // Doğru eşleştirmeleri kontrol et
-      checkAllMatches();
-      console.log('MatchingExercise - cevap kontrol edildi:', isCorrect.value ? 'doğru' : 'yanlış');
-      
-      // Update main layout
-      if (window.mainLayout) {
-        const mainLayout = window.mainLayout;
-        
-        // Cevap doğruysa puan artır
-        if (isCorrect.value && window.store && typeof window.store.increaseScore === 'function') {
-          window.store.increaseScore(20); // Eşleştirme zor olduğu için daha fazla puan
-          console.log('MatchingExercise - Puan artırıldı:', window.store.getScore());
-        }
-        
-        // Sonuç ekranını göster
-        mainLayout.updateResultState({
-          show: true,
-          isCorrect: isCorrect.value,
-          correctAnswer: isCorrect.value ? '' : 'Doğru eşleştirmeler gösterilemiyor'
-        });
-        
-        // Sonucu bildir
-        mainLayout.showResultModal(isCorrect.value);
-      } else {
-        console.error('MatchingExercise - window.mainLayout bulunamadı!');
-      }
-      
-      return isCorrect.value;
-    };
+      // exerciseManager'a gerekli parametreleri gönder
+      return exerciseManager.checkAnswer({
+        selectedPairs: getUserMatchesAsValidatedPairs(),
+        correctPairs: getCorrectPairs()
+      });
+    }
     
-    // Reset exercise
-    const reset = () => {
-      console.log('MatchingExercise - reset() çağrıldı');
+    // Durum sıfırlama
+    function resetState() {
       selectedLeft.value = null;
       selectedRight.value = null;
       matches.value = [];
-      isCorrect.value = false;
-      if (window.mainLayout) window.mainLayout.canCheck.value = false;
-    };
+      exerciseManager.reset();
+    }
     
-    // Handle continue action
-    const onContinue = () => {
-      console.log('MatchingExercise - onContinue() çağrıldı, isCorrect:', isCorrect.value);
-      if (isCorrect.value) {
-        console.log('MatchingExercise - emit("complete") çağrılıyor');
-        emit('complete');
-      } else {
-        console.log('MatchingExercise - reset() çağrılıyor (yanlış cevap durumunda)');
-        reset();
+    // Bir sonraki egzersize geç
+    function onContinue() {
+      // Önce kendimizi sıfırlayalım
+      resetState();
+      
+      // Sonra bir sonraki adıma geçelim
+      if (window.mainLayout && window.mainLayout.nextExercise) {
+        window.mainLayout.nextExercise();
       }
-    };
-    
-    // Özel sonuç içeriği oluştur
-    const getResultContent = () => {
-      const h = Vue.h;
-      return h('div', { class: 'mb-3 p-3 rounded-3' }, [
-        h('div', { class: 'mb-2 fs-5 ' + (isCorrect.value ? 'text-success' : 'text-danger') }, [
-          h('i', { class: isCorrect.value ? 'fas fa-check-circle me-2' : 'fas fa-times-circle me-2' }),
-          h('span', { class: 'fw-bold' }, isCorrect.value ? 'Mükemmel eşleştirme!' : 'Yanlış eşleştirmeler var')
-        ])
-      ]);
-    };
+    }
     
     // Initialize
     onMounted(() => {
-      console.log('MatchingExercise - onMounted çağrıldı');
-      reset();
-      if (window.activeExerciseComponent) {
-        console.log('MatchingExercise - eski activeExerciseComponent sıfırlanıyor');
-        window.activeExerciseComponent = null;
-      }
+      resetState();
       
       // Make this component accessible globally
-      console.log('MatchingExercise - yeni activeExerciseComponent oluşturuluyor');
       window.activeExerciseComponent = {
         checkAnswer,
-        isCorrect,
-        getCorrectAnswerText: () => 'Eşleştirmeleri doğru yapınız',
         onContinue,
-        renderResultContent: getResultContent
+        renderResultContent: exerciseManager.renderResultContent
       };
-      console.log('MatchingExercise - activeExerciseComponent:', window.activeExerciseComponent);
     });
     
     // Watch for changes to activate check button
@@ -291,14 +247,14 @@ export default {
       selectedLeft,
       selectedRight,
       matches,
-      isCorrect,
       isComplete,
       isItemMatched,
       selectItem,
       getPositionY,
-      checkAnswer,
-      reset,
-      onContinue
+      
+      // useExercise'dan gelen değerleri yayınla
+      isCorrect: exerciseManager.isCorrect,
+      showResult: exerciseManager.showResult
     };
   }
 }

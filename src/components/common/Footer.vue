@@ -3,19 +3,36 @@
         <div class="footer-status" v-if="showResult">
             <div v-if="isCorrect" class="correct-answer d-flex align-items-center">
                 <i class="fas fa-check-circle text-success me-2"></i>
-                <span class="fw-bold">Doğru!</span>
+                <span class="fw-bold">Aferin!</span>
             </div>
             <div v-else class="incorrect-answer d-flex align-items-center">
                 <i class="fas fa-times-circle text-danger me-2"></i>
-                <span class="fw-bold">Yanlış cevap</span>
+                <span class="fw-bold">Doğru cevap:</span>
                 <span class="ms-2" v-if="correctAnswer">{{ correctAnswer }}</span>
             </div>
         </div>
 
-        <Button :variant="isCorrect ? 'secondary' : 'primary'" size="lg" @click="handleFooterButton"
-            :disabled="!canCheck && !showResult">
-            {{ buttonText }}
-        </Button>
+        <!-- İki tamamen farklı buton -->
+        <div v-if="!showResult">
+            <Button 
+                id="checkAnswerButton"
+                variant="primary" 
+                size="lg" 
+                @click="checkAnswerButton"
+                :disabled="!canCheck">
+                KONTROL ET
+            </Button>
+        </div>
+        
+        <div v-else>
+            <Button 
+                id="continueButton"
+                :variant="isCorrect ? 'success' : 'danger'" 
+                size="lg" 
+                @click="continueButton">
+                DEVAM ET
+            </Button>
+        </div>
     </div>
 </template>
 
@@ -25,42 +42,67 @@ export default {
     components: {
         Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
     },
-    setup() {
+    props: {
+        showResult: {
+            type: Boolean,
+            default: false
+        },
+        isCorrect: {
+            type: Boolean,
+            default: false
+        },
+        canCheck: {
+            type: Boolean,
+            default: false
+        },
+        correctAnswer: {
+            type: String,
+            default: ''
+        }
+    },
+    setup(props) {
         const { computed, ref } = Vue;
-
+        const { showResult, isCorrect, canCheck, correctAnswer } = props;
+        
         // Use reactive references to sync with MainLayout state
-        const showResult = ref(false);
-        const isCorrect = ref(false);
-        const canCheck = ref(false);
-        const correctAnswer = ref('');
+        const showResultState = ref(showResult);
+        const isCorrectState = ref(isCorrect);
+        const canCheckState = ref(canCheck);
+        const correctAnswerState = ref(correctAnswer);
 
         // Computed properties for footer state and button text
         const footerStateClass = computed(() => {
-            if (!showResult.value) return '';
-            return isCorrect.value ? 'correct-state' : 'incorrect-state';
+            if (!showResultState.value) return '';
+            return isCorrectState.value ? 'correct-state' : 'incorrect-state';
         });
 
-        const buttonText = computed(() => {
-            if (showResult.value) {
-                return 'DEVAM ET';
+        // Ayrı buton işleyici fonksiyonları
+        const checkAnswerButton = () => {
+            if (window.mainLayout && typeof window.mainLayout.checkAnswer === 'function') {
+                window.mainLayout.checkAnswer();
             }
-            return 'KONTROL ET';
-        });
-
-        // Handle button click by delegating to MainLayout
-        const handleFooterButton = () => {
-            if (window.mainLayout && typeof window.mainLayout.handleFooterButton === 'function') {
-                window.mainLayout.handleFooterButton();
+        };
+        
+        const continueButton = () => {
+            if (window.mainLayout && typeof window.mainLayout.nextExercise === 'function') {
+                window.mainLayout.nextExercise();
+                
+                // Sonucu sıfırla
+                setTimeout(() => {
+                    if (window.mainLayout && typeof window.mainLayout.resetFooter === 'function') {
+                        window.mainLayout.resetFooter();
+                    }
+                }, 100);
             }
         };
 
         // Keep the component in sync with MainLayout state
         const syncWithMainLayout = () => {
             if (window.mainLayout) {
-                showResult.value = window.mainLayout.showResult.value;
-                isCorrect.value = window.mainLayout.isCorrect.value;
-                canCheck.value = window.mainLayout.canCheck.value;
-                correctAnswer.value = window.mainLayout.correctAnswer.value;
+                showResultState.value = window.mainLayout.showResult.value;
+                isCorrectState.value = window.mainLayout.isCorrect.value;
+                canCheckState.value = window.mainLayout.canCheck.value;
+                correctAnswerState.value = window.mainLayout.correctAnswer.value;
             }
         };
 
@@ -75,13 +117,13 @@ export default {
         });
 
         return {
-            showResult,
-            isCorrect,
-            canCheck,
-            correctAnswer,
+            showResult: showResultState,
+            isCorrect: isCorrectState,
+            canCheck: canCheckState,
+            correctAnswer: correctAnswerState,
             footerStateClass,
-            buttonText,
-            handleFooterButton
+            checkAnswerButton,
+            continueButton
         };
     }
 };
@@ -89,29 +131,30 @@ export default {
 
 <style scoped>
 .footer {
-    position: sticky;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    position: fixed;
     bottom: 0;
     width: 100%;
-    padding: 1rem;
-    background-color: var(--color-footer-bg);
-    border-top: 1px solid var(--color-border);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: background-color 0.3s ease;
-    z-index: var(--z-fixed);
+    z-index: 1000;
 }
 
 .footer-status {
-    margin-bottom: 0.8rem;
-    font-size: 1.1rem;
+    flex-grow: 1;
+    margin-right: 1rem;
 }
 
 .correct-state {
-    background-color: rgba(88, 167, 0, 0.1);
+    background-color: #d4edda;
+    border-top-color: #c3e6cb;
 }
 
 .incorrect-state {
-    background-color: rgba(235, 68, 68, 0.1);
+    background-color: #f8d7da;
+    border-top-color: #f5c6cb;
 }
 </style>

@@ -44,10 +44,14 @@ export default {
   setup(props, { emit }) {
     const { ref, reactive, computed, onMounted, watch, nextTick } = Vue;
 
+    // Merkezi store ve exercise manager'ı kullan
+    const stepStore = window.useStepStore();
+    const exerciseManager = window.useExercise({
+      exerciseName: 'word-builder'
+    });
+
     // State
     const title = ref("Write this in Spanish");
-    const isCorrect = ref(false);
-    const showResult = ref(false);
     const currentExercise = ref(null);
     const wordList = ref([]);
     const englishSentence = ref([]);
@@ -84,7 +88,6 @@ export default {
         .filter(w => w && w.location === 'destination')
         .sort((a, b) => a.position.x - b.position.x);
       
-      console.log('Computing userAnswer, words in destination:', wordsInDestination);
       return wordsInDestination.map(w => w.word).join(' ');
     });
 
@@ -92,13 +95,12 @@ export default {
     const getInitialLocation = (index) => {
       if (!exerciseInitialized.value) return 'origin';
       const inDestination = destinationWords.findIndex(w => w.index === index) !== -1;
-      console.log(`getInitialLocation for index ${index}: ${inDestination ? 'destination' : 'origin'}`);
       return inDestination ? 'destination' : 'origin';
     };
     
-    // Watch for destination words changes to update MainLayout canCheck state
+    // Watch for destination words changes to update check button state
     watch(destinationWords, (newArray) => {
-      console.log('destinationWords changed:', newArray);
+      // MainLayout'un kontrol butonunu etkinleştir
       if (window.mainLayout) {
         window.mainLayout.canCheck.value = newArray.length > 0;
       }
@@ -107,7 +109,6 @@ export default {
     // Select random exercise and prepare words
     const initializeExercise = () => {
       try {
-        console.log('Initializing exercise');
         exerciseInitialized.value = false;
         
         // Reset arrays and select exercise
@@ -118,11 +119,8 @@ export default {
         englishSentence.value = currentExercise.value.english.split(" ");
         wordList.value = [...currentExercise.value.list];
         
-        console.log('Exercise initialized with wordList:', wordList.value);
-        
         // Need to wait for DOM update before marking as initialized
         nextTick(() => {
-          console.log('Exercise fully initialized');
           exerciseInitialized.value = true;
         });
       } catch (error) {
@@ -133,7 +131,6 @@ export default {
     // Handle word positioning events from Word components
     const handleWordPositioned = (wordData) => {
       const { index, position, location, word } = wordData;
-      console.log(`Word ${index} positioned at ${location}:`, position);
       
       // Update position in our tracking array
       wordPositionsArray[index] = {
@@ -147,20 +144,17 @@ export default {
     // Handle word click events
     const handleWordClick = (wordData) => {
       const { index, location } = wordData;
-      console.log(`Word ${index} clicked, location: ${location}`);
       // All logic is now in the Word component
     };
 
     // Handle location changes from Word component
     const handleLocationChange = (wordData) => {
       const { index, location, position } = wordData;
-      console.log(`Word ${index} location changed to ${location}`);
       
       // Update our tracking of destination words
       if (location === 'destination') {
         // Add to destination if not already there
         if (destinationWords.findIndex(w => w.index === index) === -1) {
-          console.log(`Adding word ${index} to destination`);
           destinationWords.push({ 
             index,
             word: wordList.value[index],
@@ -171,7 +165,6 @@ export default {
         // Remove from destination
         const idx = destinationWords.findIndex(w => w.index === index);
         if (idx !== -1) {
-          console.log(`Removing word ${index} from destination`);
           destinationWords.splice(idx, 1);
         }
       }
@@ -182,93 +175,59 @@ export default {
       }
     };
 
-    // Check if answer is correct
-    const checkAnswer = () => {
-      if (destinationWords.length === 0) return false;
+    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
+    function checkAnswer() {
+      // exerciseManager'a gerekli parametreleri gönder
+      return exerciseManager.checkAnswer({
+        builtSentence: userAnswer.value,
+        correctSentence: correctAnswer.value
+      });
+    }
 
-      isCorrect.value = userAnswer.value === correctAnswer.value;
-      showResult.value = true;
-
-      // Update global state
-      const store = window.store || {};
-      if (isCorrect.value && store.increaseScore) {
-        store.increaseScore(15);
-      } else if (!isCorrect.value && store.decreaseHearts) {
-        store.decreaseHearts();
-      }
-
-      if (window.mainLayout) {
-        window.mainLayout.showResult.value = true;
-        window.mainLayout.isCorrect.value = isCorrect.value;
-        window.mainLayout.correctAnswer.value = correctAnswer.value;
-      }
-
-      return isCorrect.value;
-    };
-
-    // Reset the exercise
-    const reset = () => {
-      isCorrect.value = false;
-      showResult.value = false;
-
-      if (window.mainLayout) {
-        window.mainLayout.canCheck.value = false;
-        window.mainLayout.showResult.value = false;
-      }
-
+    // Egzersizi sıfırlama
+    function resetState() {
+      exerciseManager.reset();
       setTimeout(initializeExercise, 100);
-    };
+    }
 
-    // Skip/continue handlers
-    const handleSkip = () => {
-      reset();
-
-      const store = window.store || {};
-      if (store.nextStep) {
-        store.nextStep();
+    // Bir sonraki egzersize geç
+    function onContinue() {
+      // Önce kendimizi sıfırlayalım
+      resetState();
+      
+      // Sonra bir sonraki adıma geçelim
+      if (window.mainLayout && window.mainLayout.nextExercise) {
+        window.mainLayout.nextExercise();
       }
-    };
-
-    const onContinue = () => {
-      if (isCorrect.value) {
-        emit('complete');
-
-        const store = window.store || {};
-        if (store.nextStep) {
-          store.nextStep();
-        }
-      } else {
-        reset();
-      }
-    };
+    }
 
     // Initialize on mount
     onMounted(() => {
+      initializeExercise();
+      
       // Make component accessible globally for step management
       window.activeExerciseComponent = {
         checkAnswer,
-        isCorrect,
-        getCorrectAnswerText: () => correctAnswer.value,
-        onContinue
+        onContinue,
+        renderResultContent: exerciseManager.renderResultContent
       };
-
-      reset();
     });
 
     return {
       title,
-      wordList,
       englishSentence,
+      wordList,
       destinationContainer,
       originContainer,
       wordComponents,
-      wordPositionsArray,
+      getInitialLocation,
       handleWordClick,
       handleLocationChange,
       handleWordPositioned,
-      getInitialLocation,
-      checkAnswer,
-      handleSkip
+      
+      // useExercise'dan gelen değerleri yayınla
+      isCorrect: exerciseManager.isCorrect,
+      showResult: exerciseManager.showResult
     };
   }
 }

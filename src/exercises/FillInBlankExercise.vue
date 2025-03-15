@@ -2,19 +2,18 @@
   <div class="exercise-component">
     <div class="sentence-container mb-4">
       <div class="card bg-light p-4 rounded-4">
-        <img :src="sentenceImage" alt="Sentence context" class="img-fluid mb-3" style="max-height: 180px;">
         <div class="sentence d-flex align-items-center justify-content-center flex-wrap gap-2">
-          <span class="prefix fs-5">{{ sentencePrefix }}</span>
+          <span class="prefix fs-5">{{ sentence.prefix }}</span>
           <div class="blank position-relative">
             <input 
               type="text" 
-              v-model="selectedWord" 
+              v-model="selectedOption" 
               class="form-control text-primary fw-bold text-center border-primary border-bottom border-0 bg-transparent"
               readonly
-              :placeholder="placeholder"
+              :placeholder="selectedOption ? '' : '___'"
             >
           </div>
-          <span class="suffix fs-5">{{ sentenceSuffix }}</span>
+          <span class="suffix fs-5">{{ sentence.suffix }}</span>
         </div>
       </div>
     </div>
@@ -24,8 +23,8 @@
         <div v-for="(option, index) in options" :key="index" class="col-6">
           <Button 
             variant="primaryOutline"
-            :class="{ 'selected': selectedWord === option }"
-            @click="!showResult && (selectedWord = option)"
+            :class="{ 'selected': selectedOption === option }"
+            @click="selectOption(option)"
             :disabled="showResult"
           >
             {{ option }}
@@ -38,71 +37,83 @@
 
 <script>
 export default {
-  name: 'FillInBlankExercise',
   components: {
     Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
   },
-  emits: ['complete'],
-  setup(props, { emit }) {
-    const { ref, computed, onMounted, watch } = Vue;
+  setup() {
+    const { ref, onMounted } = Vue;
+
+    // Merkezi store'u kullan
+    const stepStore = window.useStepStore();
     
-    // State
-    const title = "Kumpletuhin ang pangungusap";
-    const sentenceImage = "/src/assets/images/coffee.svg";
-    const sentencePrefix = "Oh, the bus is";
-    const sentenceSuffix = "today!";
-    const placeholder = "___";
-    const options = ref(["cloudy", "windy", "spicy", "busy"]);
-    const correctAnswer = "busy";
-    const selectedWord = ref("");
-    
-    // useExercise composable'ını kullan
-    const exercise = window.useExercise({
-      exerciseName: 'FillInBlankExercise',
-      correctAnswerFn: () => selectedWord.value === correctAnswer,
-      validateFn: () => !!selectedWord.value,
-      resetStateFn: () => {
-        selectedWord.value = "";
-      },
-      emit
+    // Merkezi useExercise composable'ını kullan
+    const exerciseManager = window.useExercise({
+      exerciseName: 'fill-in-blank'
     });
-    
-    // Kelime seçildiğinde check butonunu etkinleştir
-    watch(selectedWord, (newValue) => {
-      exercise.updateMainLayout(!!newValue);
+
+    // Egzersiz verisi
+    const sentence = ref({
+      prefix: "The cat",
+      suffix: "on the mat."
     });
-    
-    // Get correct answer text for display
-    const getCorrectAnswerText = () => {
-      return correctAnswer;
-    };
-    
-    // Get result content for result modal
-    const getResultContent = () => {
-      // Bu fonksiyon, sonuç modalında gösterilecek özel içeriği oluşturabilir
-      const h = Vue.h;
-      return h('div', { class: 'answer-section my-3' }, [
-        h('div', { class: 'mb-2 fs-5' }, [
-          h('span', {}, sentencePrefix + ' '),
-          h('span', { 
-            class: exercise.isCorrect.value ? 'text-success fw-bold' : 'text-danger fw-bold'
-          }, selectedWord.value),
-          h('span', {}, ' ' + sentenceSuffix)
-        ])
-      ]);
-    };
-    
+    const options = ref(["sits", "sit", "sitting"]);
+    const correctOption = ref("sits");
+    const selectedOption = ref(null);
+
+    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
+    function checkAnswer() {
+      // exerciseManager'a gerekli parametreleri gönder
+      return exerciseManager.checkAnswer({
+        selectedOption: selectedOption.value,
+        correctOption: correctOption.value
+      });
+    }
+
+    // Durum sıfırlama
+    function resetState() {
+      selectedOption.value = null;
+      exerciseManager.reset();
+    }
+
+    // Bir sonraki egzersize geç
+    function onContinue() {
+      // Önce kendimizi sıfırlayalım
+      resetState();
+      
+      // Sonra bir sonraki adıma geçelim
+      if (window.mainLayout && window.mainLayout.nextExercise) {
+        window.mainLayout.nextExercise();
+      }
+    }
+
+    // Seçenek seçildiğinde MainLayout'un kontrol butonunu aktifleştir
+    function selectOption(option) {
+      selectedOption.value = option;
+      
+      // MainLayout'un kontrol butonunu etkinleştir
+      if (window.mainLayout) {
+        window.mainLayout.canCheck.value = true;
+      }
+    }
+
+    // Bileşen yüklendiğinde
+    onMounted(() => {
+      resetState();
+      
+      // Global değişkene referans ekle - MainLayout'un erişmesi için
+      window.activeExerciseComponent = {
+        checkAnswer,
+        onContinue,
+        renderResultContent: exerciseManager.renderResultContent
+      };
+    });
+
     return {
-      title,
-      sentenceImage,
-      sentencePrefix,
-      sentenceSuffix,
-      placeholder,
+      sentence,
       options,
-      selectedWord,
-      ...exercise,
-      getCorrectAnswerText,
-      getResultContent
+      selectedOption,
+      selectOption,
+      showResult: exerciseManager.showResult
     };
   }
 }
@@ -110,37 +121,41 @@ export default {
 
 <style scoped>
 .sentence-container {
-  margin-bottom: 30px;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .blank {
+  display: inline-block;
   min-width: 100px;
 }
 
 .blank input {
-  font-size: 1.2rem;
   box-shadow: none !important;
+  outline: none !important;
   border-radius: 0;
-  padding: 4px 8px;
+  font-size: 1.2rem;
 }
 
-.blank input::placeholder {
-  color: #7c7c7c;
+.options-container {
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.options-container .col-6 {
+  padding: 5px;
 }
 
 .options-container button {
+  width: 100%;
+  padding: 10px;
   font-size: 1rem;
-  transition: all 0.2s ease;
-}
-
-.options-container button:hover:not(:disabled) {
-  background-color: #3b3b3b;
-  border-color: #4b4b4b;
+  border-radius: 10px;
 }
 
 .options-container button.selected {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
+  background-color: #58a700;
   color: white;
+  border-color: #58a700;
 }
 </style>

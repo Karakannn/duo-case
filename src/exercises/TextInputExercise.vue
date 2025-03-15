@@ -20,7 +20,7 @@
             placeholder="Type your answer"
             v-model="userInput"
             :disabled="showResult"
-            @keyup.enter="!showResult && handleSubmit()"
+            @keyup.enter="handleSubmit()"
           >
           <label for="translation-input" class="text-white-50">Type your answer</label>
         </div>
@@ -38,134 +38,74 @@ export default {
   setup(props, { emit }) {
     const { ref, onMounted, watch } = Vue;
     
+    // Merkezi store ve exercise manager'ı kullan
+    const stepStore = window.useStepStore();
+    const exerciseManager = window.useExercise({
+      exerciseName: 'text-input'
+    });
+    
     // State
     const title = "Çevirin";
     const characterImage = "/src/assets/images/character.svg";
     const phraseToTranslate = "coffee";
     const correctAnswer = "kahve";
     const userInput = ref("");
-    const isCorrect = ref(false);
-    const showResult = ref(false);
-    const isChecked = ref(false);
     
-    // Get correct answer text for display
-    const getCorrectAnswerText = () => {
-      return correctAnswer;
-    };
-    
-    // Get result content for result modal
-    const getResultContent = () => {
-      // Bu fonksiyon, sonuç modalında gösterilecek özel içeriği oluşturabilir
-      const h = Vue.h;
-      return h('div', { class: 'answer-section my-3' }, [
-        h('div', { class: 'fs-5' }, [
-          h('p', { class: 'mb-1' }, 'Çeviriniz:'),
-          h('p', { 
-            class: isCorrect.value ? 'text-success fw-bold' : 'text-danger fw-bold line-through'
-          }, userInput.value || ''),
-          !isCorrect.value && h('p', { class: 'text-success mt-2' }, [
-            h('i', { class: 'fas fa-check-circle me-2' }),
-            h('span', {}, correctAnswer)
-          ])
-        ])
-      ]);
-    };
-    
-    // Handle submit (check answer)
+    // Handle submit (check answer) - Enter tuşuyla kontrol
     const handleSubmit = () => {
-      console.log('TextInputExercise - handleSubmit() çağrıldı');
-      checkAnswer();
+      if (window.mainLayout && window.mainLayout.handleFooterButton) {
+        window.mainLayout.handleFooterButton(); 
+      }
     };
     
-    // Check answer
-    const checkAnswer = () => {
-      console.log('TextInputExercise - checkAnswer() çağrıldı');
+    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
+    function checkAnswer() {
       if (!userInput.value) {
-        console.log('TextInputExercise - Kullanıcı girdisi boş, işlem yapılmadı');
-        return;
+        return null;
       }
       
-      isChecked.value = true;
-      
-      // Türkçe karakterlerden ve büyük/küçük harf farkından bağımsız karşılaştırma
-      const normalizedUserInput = userInput.value.toLowerCase().trim();
-      const normalizedCorrectAnswer = correctAnswer.toLowerCase().trim();
-      
-      isCorrect.value = normalizedUserInput === normalizedCorrectAnswer;
-      console.log('TextInputExercise - Cevap kontrol edildi:', isCorrect.value ? 'doğru' : 'yanlış');
-      
-      // Update main layout
-      if (window.mainLayout) {
-        const mainLayout = window.mainLayout;
-        
-        // Cevap doğruysa puan artır
-        if (isCorrect.value && window.store && typeof window.store.increaseScore === 'function') {
-          window.store.increaseScore(15); // Metin girdisi zor olduğu için biraz daha fazla puan
-          console.log('TextInputExercise - Puan artırıldı:', window.store.getScore());
-        }
-        
-        // Sonuç ekranını göster
-        mainLayout.updateResultState({
-          show: true,
-          isCorrect: isCorrect.value,
-          correctAnswer: isCorrect.value ? '' : getCorrectAnswerText()
-        });
-        
-        // Sonucu bildir
-        mainLayout.showResultModal(isCorrect.value);
-      } else {
-        console.error('TextInputExercise - window.mainLayout bulunamadı!');
-      }
-      
-      return isCorrect.value;
-    };
+      // exerciseManager'a gerekli parametreleri gönder
+      return exerciseManager.checkAnswer({
+        userInput: userInput.value,
+        correctText: correctAnswer,
+        allowPartialMatch: false
+      });
+    }
     
-    // Reset the exercise
-    const reset = () => {
-      console.log('TextInputExercise - reset() çağrıldı');
+    // Durum sıfırlama
+    function resetState() {
       userInput.value = "";
-      isCorrect.value = false;
-      showResult.value = false;
-      isChecked.value = false;
-      if (window.mainLayout) window.mainLayout.canCheck.value = false;
-    };
+      exerciseManager.reset();
+    }
     
-    // Handle continue button click
-    const onContinue = () => {
-      console.log('TextInputExercise - onContinue() çağrıldı, isCorrect:', isCorrect.value);
-      if (isCorrect.value) {
-        console.log('TextInputExercise - emit("complete") çağrılıyor');
-        emit('complete');
-      } else {
-        console.log('TextInputExercise - reset() çağrılıyor (yanlış cevap durumunda)');
-        reset();
+    // Bir sonraki egzersize geç
+    function onContinue() {
+      // Önce kendimizi sıfırlayalım
+      resetState();
+      
+      // Sonra bir sonraki adıma geçelim
+      if (window.mainLayout && window.mainLayout.nextExercise) {
+        window.mainLayout.nextExercise();
       }
-    };
+    }
     
     // Initialize
     onMounted(() => {
-      console.log('TextInputExercise - onMounted çağrıldı');
-      reset();
-      if (window.activeExerciseComponent) {
-        console.log('TextInputExercise - eski activeExerciseComponent sıfırlanıyor');
-        window.activeExerciseComponent = null;
-      }
+      resetState();
       
       // Make this component accessible globally
-      console.log('TextInputExercise - yeni activeExerciseComponent oluşturuluyor');
       window.activeExerciseComponent = {
         checkAnswer,
-        isCorrect,
-        getCorrectAnswerText,
         onContinue,
-        renderResultContent: getResultContent
+        renderResultContent: exerciseManager.renderResultContent
       };
-      console.log('TextInputExercise - activeExerciseComponent:', window.activeExerciseComponent);
     });
     
     // Update check button when input changes
     watch(userInput, val => { 
-      if (window.mainLayout) window.mainLayout.canCheck.value = !!val; 
+      if (window.mainLayout) {
+        window.mainLayout.canCheck.value = !!val;
+      }
     });
     
     return {
@@ -174,10 +114,10 @@ export default {
       phraseToTranslate,
       correctAnswer,
       userInput,
-      isCorrect,
-      showResult,
       handleSubmit,
-      reset
+      
+      // useExercise'dan gelen değerleri yayınla
+      showResult: exerciseManager.showResult
     };
   }
 }

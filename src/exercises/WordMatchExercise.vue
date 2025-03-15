@@ -15,83 +15,101 @@
           v-for="(option, index) in options" 
           :key="index"
           variant="primaryOutline"
-          :class="selected === index ? 'selected' : ''"
-          @click="!showResult && (selected = index)"
+          :class="selectedOption === option ? 'selected' : ''"
+          @click="selectOption(option)"
           :disabled="showResult"
         >
           {{ option }}
         </Button>
       </div>
     </div>
-  
-    <div class="mt-4">
-      <Button 
-        variant="secondary"
-        size="lg"
-        :disabled="selected === null || showResult"
-        @click="checkAnswer"
-      >
-        DENETLE
-      </Button>
-    </div>
-    
-    <result-modal 
-      :show="showResult" 
-      :is-correct="isCorrect" 
-      :correct-answer="options[correctIndex]"
-      @continue="isCorrect ? $emit('complete') : reset()"
-    >
-      <template #answer-content>
-        <div :class="['fs-5', isCorrect ? 'text-success' : 'text-danger']">
-          <i :class="isCorrect ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
-          <span class="ms-2">{{ options[selected] }}</span>
-        </div>
-      </template>
-    </result-modal>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'WordMatchExercise',
   components: {
-    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions)),
-    ResultModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ResultModal.vue", window.sfcOptions))
+    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
   },
-  emits: ['complete'],
-  setup(props, { emit }) {
-    const { ref, computed, onMounted, watch } = Vue;
+  setup() {
+    const { ref, onMounted, nextTick } = Vue;
+
+    // Merkezi store'u kullan
+    const stepStore = window.useStepStore();
     
-    // State
-    const title = "Doğru çeviriyi seç";
-    const word = "Coffee";
-    const options = ref(['kahve', 'çay', 'su', 'şeker']);
-    const correctIndex = 0; 
-    const selected = ref(null);
-    
-    // useExercise composable'ını kullan
-    const exercise = window.useExercise({
-      exerciseName: 'WordMatchExercise',
-      correctAnswerFn: () => selected.value === correctIndex,
-      validateFn: () => selected.value !== null,
-      resetStateFn: () => {
-        selected.value = null;
-      },
-      emit
+    // Merkezi useExercise composable'ını kullan
+    const exerciseManager = window.useExercise({
+      exerciseName: 'word-match'
     });
-    
-    // Update check button when selection changes
-    watch(selected, val => { 
-      exercise.updateMainLayout(!!val); 
+
+    // Egzersiz verisi
+    const word = ref("elma");
+    const options = ref(["apple", "car", "house", "boat"]);
+    const correctOption = ref("apple");
+    const selectedOption = ref(null);
+
+    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
+    function checkAnswer() {
+      if (!selectedOption.value) {
+        return null;
+      }
+      
+      // Doğru/yanlış kontrolü
+      const isCorrect = selectedOption.value === correctOption.value;
+      
+      // MainLayout'un modalı göstermesi için sonucu döndür
+      return {
+        isCorrect,
+        correctAnswer: correctOption.value,
+        show: true
+      };
+    }
+
+    // Durum sıfırlama
+    function resetState() {
+      selectedOption.value = null;
+      exerciseManager.reset();
+    }
+
+    // Bir sonraki egzersize geç
+    function onContinue() {
+      // Önce kendimizi sıfırlayalım
+      resetState();
+      
+      // Sonra bir sonraki adıma geçelim
+      if (window.mainLayout && window.mainLayout.nextExercise) {
+        window.mainLayout.nextExercise();
+      }
+    }
+
+    // Seçenek seçildiğinde MainLayout'un kontrol butonunu aktifleştir
+    function selectOption(option) {
+      selectedOption.value = option;
+      
+      // MainLayout'un kontrol butonunu etkinleştir
+      if (window.mainLayout) {
+        window.mainLayout.canCheck.value = true;
+      }
+    }
+
+    // Bileşen yüklendiğinde
+    onMounted(() => {
+      console.log("WordMatchExercise component loaded");
+      resetState();
+      
+      // Global değişkene referans ekle - MainLayout'un erişmesi için
+      window.activeExerciseComponent = {
+        checkAnswer,
+        renderResultContent: exerciseManager.renderResultContent
+      };
     });
-    
+
     return {
-      title, 
-      word, 
-      options, 
-      selected, 
-      correctIndex, 
-      ...exercise
+      word,
+      options,
+      selectedOption,
+      selectOption,
+      showResult: exerciseManager.showResult
     };
   }
 }
@@ -99,20 +117,25 @@ export default {
 
 <style scoped>
 .word-badge {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
 }
 
-.options-container button {
+.options-container {
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.option-list button {
+  text-align: left;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 10px;
   font-size: 1.1rem;
-  transition: all 0.2s ease;
 }
 
-.options-container button:hover:not(:disabled):not(.selected) {
-  background-color: #3b3b3b;
-  border-color: #4b4b4b;
-}
-
-.options-container button.selected {
-  border-color: #3b82f6;
+.option-list button.selected {
+  background-color: #58a700;
+  color: white;
+  border-color: #58a700;
 }
 </style>

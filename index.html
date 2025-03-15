@@ -13,7 +13,8 @@
   <script src="https://unpkg.com/vue-router@4.0.15/dist/vue-router.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
   <link rel="stylesheet" href="./src/styles/theme.css">
-  <!-- Step Store'unu yükle -->
+  <!-- Önce store yönetimi composable'larını yükle -->
+  <script src="./src/composables/useExercise.js"></script>
   <script src="./src/store/StepStore.js"></script>
 </head>
 
@@ -21,74 +22,6 @@
   <div id="app"></div>
 
   <script>
-    // Create a global store for the application
-    window.store = {
-      // State
-      _state: {
-        progress: 25,
-        hearts: 5,
-        score: 0,
-        currentStep: 1,
-        totalSteps: 4,
-        steps: [
-          { id: 1, name: 'word-builder', title: 'Cümle Oluştur', progressPercentage: 25 },
-          { id: 2, name: 'picture-match', title: 'Resimli Kelime Eşleştirme', progressPercentage: 50 },
-          { id: 3, name: 'word-match', title: 'Doğru Çeviriyi Seç', progressPercentage: 75 },
-          { id: 4, name: 'fill-in-blank', title: 'Boşluk Doldurma', progressPercentage: 100 }
-        ]
-      },
-
-      // Getters
-      getProgress: function () { return this._state.progress; },
-      getHearts: function () { return this._state.hearts; },
-      getScore: function () { return this._state.score; },
-      getCurrentStep: function () { return this._state.currentStep; },
-      getTotalSteps: function () { return this._state.totalSteps; },
-      getCurrentStepInfo: function () {
-        return this._state.steps.find(s => s.id === this._state.currentStep) || this._state.steps[0];
-      },
-
-      // Actions
-      setCurrentStep: function (stepId) {
-        console.log('Setting current step to:', stepId);
-        if (stepId >= 1 && stepId <= this._state.totalSteps) {
-          this._state.currentStep = stepId;
-          const step = this._state.steps.find(s => s.id === stepId);
-          if (step) {
-            this._state.progress = step.progressPercentage;
-          }
-        }
-      },
-
-      decreaseHearts: function () {
-        if (this._state.hearts > 0) {
-          this._state.hearts--;
-        }
-      },
-
-      increaseScore: function (points) {
-        this._state.score += points;
-      },
-
-      nextStep: function () {
-        if (this._state.currentStep < this._state.totalSteps) {
-          this._state.currentStep++;
-        } else {
-          // Loop back to the first step when completing all steps
-          this._state.currentStep = 1;
-        }
-
-        // Update progress based on current step
-        const step = this._state.steps.find(s => s.id === this._state.currentStep);
-        if (step) {
-          this._state.progress = step.progressPercentage;
-        }
-
-        return this._state.steps.find(s => s.id === this._state.currentStep);
-      }
-    };
-
-    // Use the store from src/store/index.js (imported in main.js)
     window.sfcOptions = {
       moduleCache: {
         vue: Vue,
@@ -207,7 +140,7 @@
           </div>
         `,
       setup() {
-        // Yeni Step Store'u başlat - artık doğrudan global fonksiyona erişim var
+        // Merkezi store'u başlat
         window.initializeGlobalStore();
         
         const { isDarkMode } = useTheme();
