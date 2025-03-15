@@ -1,5 +1,5 @@
 <template>
-  <exercise-container :title="title">
+  <div class="exercise-component">
     <div class="matching-exercise">
       <!-- Audio container (if available) -->
       <div v-if="audioWord" class="audio-container mb-4 text-center">
@@ -61,14 +61,14 @@
         </svg>
       </div>
     </div>
-  </exercise-container>
+  </div>
 </template>
 
 <script>
 export default {
   name: 'MatchingExercise',
   components: {
-    ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions))
+    // ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions))
   },
   emits: ['complete'],
   setup(props, { emit }) {

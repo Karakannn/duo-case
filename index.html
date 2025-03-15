@@ -13,6 +13,8 @@
   <script src="https://unpkg.com/vue-router@4.0.15/dist/vue-router.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
   <link rel="stylesheet" href="./src/styles/theme.css">
+  <!-- Step Store'unu yükle -->
+  <script src="./src/store/StepStore.js"></script>
 </head>
 
 <body>
@@ -205,9 +207,12 @@
           </div>
         `,
       setup() {
+        // Yeni Step Store'u başlat - artık doğrudan global fonksiyona erişim var
+        window.initializeGlobalStore();
+        
         const { isDarkMode } = useTheme();
         return { isDarkMode };
-      }
+      },
     });
 
     // Use router

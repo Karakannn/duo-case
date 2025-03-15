@@ -1,5 +1,5 @@
 <template>
-  <exercise-container :title="title">
+  <div class="exercise-component">
     <div class="word-container mb-4 d-flex align-items-center justify-content-center">
       <div class="character-image me-3">
         <img src="/src/assets/images/character.svg" alt="Character" class="img-fluid" style="height: 100px;">
@@ -48,16 +48,15 @@
         </div>
       </template>
     </result-modal>
-  </exercise-container>
+  </div>
 </template>
 
 <script>
 export default {
   name: 'WordMatchExercise',
   components: {
-    ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions)),
-    ResultModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ResultModal.vue", window.sfcOptions)),
-    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
+    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions)),
+    ResultModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ResultModal.vue", window.sfcOptions))
   },
   emits: ['complete'],
   setup(props, { emit }) {
@@ -69,42 +68,30 @@ export default {
     const options = ref(['kahve', 'çay', 'su', 'şeker']);
     const correctIndex = 0; 
     const selected = ref(null);
-    const isCorrect = ref(false);
-    const showResult = ref(false);
     
-    // Check answer
-    const checkAnswer = () => {
-      if (selected.value === null) return;
-      
-      isCorrect.value = selected.value === correctIndex;
-      showResult.value = true;
-      
-      const store = window.store || {};
-      isCorrect.value 
-        ? (store.increaseScore && store.increaseScore(10)) 
-        : (store.decreaseHearts && store.decreaseHearts());
-    };
-    
-    // Reset exercise
-    const reset = () => {
-      selected.value = null;
-      isCorrect.value = false;
-      showResult.value = false;
-      if (window.mainLayout) window.mainLayout.canCheck = false;
-    };
-    
-    // Initialize
-    onMounted(() => {
-      reset();
-      if (window.activeExerciseComponent) window.activeExerciseComponent.checkAnswer = checkAnswer;
+    // useExercise composable'ını kullan
+    const exercise = window.useExercise({
+      exerciseName: 'WordMatchExercise',
+      correctAnswerFn: () => selected.value === correctIndex,
+      validateFn: () => selected.value !== null,
+      resetStateFn: () => {
+        selected.value = null;
+      },
+      emit
     });
     
     // Update check button when selection changes
-    watch(selected, val => { if (window.mainLayout) window.mainLayout.canCheck = !!val; });
+    watch(selected, val => { 
+      exercise.updateMainLayout(!!val); 
+    });
     
     return {
-      title, word, options, selected, correctIndex, 
-      isCorrect, showResult, checkAnswer, reset, $emit: emit
+      title, 
+      word, 
+      options, 
+      selected, 
+      correctIndex, 
+      ...exercise
     };
   }
 }

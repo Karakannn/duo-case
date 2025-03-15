@@ -1,5 +1,5 @@
 <template>
-  <exercise-container :title="title">
+  <div class="exercise-component">
     <div class="sentence-container mb-4">
       <div class="card bg-light p-4 rounded-4">
         <img :src="sentenceImage" alt="Sentence context" class="img-fluid mb-3" style="max-height: 180px;">
@@ -33,14 +33,13 @@
         </div>
       </div>
     </div>
-  </exercise-container>
+  </div>
 </template>
 
 <script>
 export default {
   name: 'FillInBlankExercise',
   components: {
-    ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions)),
     Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
   },
   emits: ['complete'],
@@ -56,9 +55,22 @@ export default {
     const options = ref(["cloudy", "windy", "spicy", "busy"]);
     const correctAnswer = "busy";
     const selectedWord = ref("");
-    const isCorrect = ref(false);
-    const isChecked = ref(false);
-    const showResult = ref(false);
+    
+    // useExercise composable'ını kullan
+    const exercise = window.useExercise({
+      exerciseName: 'FillInBlankExercise',
+      correctAnswerFn: () => selectedWord.value === correctAnswer,
+      validateFn: () => !!selectedWord.value,
+      resetStateFn: () => {
+        selectedWord.value = "";
+      },
+      emit
+    });
+    
+    // Kelime seçildiğinde check butonunu etkinleştir
+    watch(selectedWord, (newValue) => {
+      exercise.updateMainLayout(!!newValue);
+    });
     
     // Get correct answer text for display
     const getCorrectAnswerText = () => {
@@ -73,103 +85,24 @@ export default {
         h('div', { class: 'mb-2 fs-5' }, [
           h('span', {}, sentencePrefix + ' '),
           h('span', { 
-            class: isCorrect.value ? 'text-success fw-bold' : 'text-danger fw-bold'
+            class: exercise.isCorrect.value ? 'text-success fw-bold' : 'text-danger fw-bold'
           }, selectedWord.value),
           h('span', {}, ' ' + sentenceSuffix)
         ])
       ]);
     };
     
-    // Check answer
-    const checkAnswer = () => {
-      console.log('FillInBlankExercise - checkAnswer() çağrıldı');
-      if (!selectedWord.value) {
-        console.log('FillInBlankExercise - Seçili kelime yok, işlem yapılmadı');
-        return;
-      }
-      
-      isChecked.value = true;
-      isCorrect.value = selectedWord.value === correctAnswer;
-      console.log('FillInBlankExercise - Cevap kontrol edildi:', isCorrect.value ? 'doğru' : 'yanlış');
-      
-      // Update main layout
-      if (window.mainLayout) {
-        const mainLayout = window.mainLayout;
-        
-        // Cevap doğruysa puan artır
-        if (isCorrect.value && window.store && typeof window.store.increaseScore === 'function') {
-          window.store.increaseScore(10); // Her doğru cevap için 10 puan
-          console.log('FillInBlankExercise - Puan artırıldı:', window.store.getScore());
-        }
-        
-        // Sonuç ekranını göster
-        mainLayout.updateResultState({
-          show: true,
-          isCorrect: isCorrect.value,
-          correctAnswer: isCorrect.value ? '' : getCorrectAnswerText()
-        });
-        
-        // Sonucu bildir
-        mainLayout.showResultModal(isCorrect.value);
-      } else {
-        console.error('FillInBlankExercise - window.mainLayout bulunamadı!');
-      }
-      
-      return isCorrect.value;
-    };
-    
-    // Reset exercise
-    const reset = () => {
-      console.log('FillInBlankExercise - reset() çağrıldı');
-      selectedWord.value = "";
-      isCorrect.value = false;
-      isChecked.value = false;
-      showResult.value = false;
-      if (window.mainLayout) window.mainLayout.canCheck.value = false;
-    };
-    
-    // Handle continue action
-    const onContinue = () => {
-      console.log('FillInBlankExercise - onContinue() çağrıldı, isCorrect:', isCorrect.value);
-      if (isCorrect.value) {
-        console.log('FillInBlankExercise - emit("complete") çağrılıyor');
-        emit('complete');
-      } else {
-        console.log('FillInBlankExercise - reset() çağrılıyor (yanlış cevap durumunda)');
-        reset();
-      }
-    };
-    
-    // Initialize
-    onMounted(() => {
-      console.log('FillInBlankExercise - onMounted çağrıldı');
-      reset();
-      if (window.activeExerciseComponent) {
-        console.log('FillInBlankExercise - eski activeExerciseComponent sıfırlanıyor');
-        window.activeExerciseComponent = null;
-      }
-      
-      // Make this component accessible globally
-      console.log('FillInBlankExercise - yeni activeExerciseComponent oluşturuluyor');
-      window.activeExerciseComponent = {
-        checkAnswer,
-        isCorrect,
-        getCorrectAnswerText,
-        onContinue,
-        renderResultContent: getResultContent
-      };
-      console.log('FillInBlankExercise - activeExerciseComponent:', window.activeExerciseComponent);
-    });
-    
-    // Update check button when word changes
-    watch(selectedWord, val => { 
-      if (window.mainLayout) window.mainLayout.canCheck.value = !!val; 
-    });
-    
     return {
-      title, sentenceImage, sentencePrefix, sentenceSuffix, placeholder,
-      options, correctAnswer, selectedWord, isCorrect, isChecked, showResult, 
-      checkAnswer, reset
+      title,
+      sentenceImage,
+      sentencePrefix,
+      sentenceSuffix,
+      placeholder,
+      options,
+      selectedWord,
+      ...exercise,
+      getCorrectAnswerText,
+      getResultContent
     };
   }
 }

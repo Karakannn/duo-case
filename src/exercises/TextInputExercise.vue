@@ -1,5 +1,5 @@
 <template>
-  <exercise-container :title="title">
+  <div class="exercise-component">
     <div class="translation-container mb-4">
       <div class="character-section d-flex align-items-center justify-content-start mb-2">
         <div class="character-image">
@@ -26,14 +26,13 @@
         </div>
       </div>
     </div>
-  </exercise-container>
+  </div>
 </template>
 
 <script>
 export default {
   name: 'TextInputExercise',
   components: {
-    ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions))
   },
   emits: ['complete'],
   setup(props, { emit }) {

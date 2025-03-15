@@ -1,5 +1,5 @@
 <template>
-  <exercise-container :title="title">
+  <div class="exercise-component">
     <div class="wrapper">
       <h1 class="title">Write this in Spanish</h1>
       <div class="top-container">
@@ -18,16 +18,13 @@
       </div>
     </div>
     <!-- Footer is provided by MainLayout -->
-  </exercise-container>
+  </div>
 </template>
 
 <script>
 export default {
   name: 'WordBuilderExercise',
   components: {
-    ExerciseContainer: Vue.defineAsyncComponent(() =>
-      window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions)
-    )
   },
   emits: ['complete'],
   setup(props, { emit }) {

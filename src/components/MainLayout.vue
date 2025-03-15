@@ -5,12 +5,27 @@
 
     <!-- Main Content Area -->
     <div class="layout-content">
-      <component v-if="mainComponent" :is="mainComponent" @check-answer="checkAnswer" />
-      <div v-else class="loading-container">
-        <div class="spinner-border text-success" role="status">
-          <span class="visually-hidden">Loading...</span>
+      <!-- ExerciseContainer ve ExerciseController birleştirildi -->
+      <div class="exercise-container">
+        <div v-if="title" class="exercise-title text-center mb-4">
+          <h5 class="text-white-50">{{ title }}</h5>
         </div>
-        <p class="mt-3 text-white">Yükleniyor...</p>
+        
+        <div class="exercise-content">
+          <component 
+            v-if="activeComponent" 
+            :is="activeComponent" 
+            :key="currentStepIndex" 
+            ref="activeExercise"
+            @complete="nextExercise"
+          />
+          <div v-else class="loading-container">
+            <div class="spinner-border text-success" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-white">Yükleniyor...</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -37,7 +52,10 @@ export default {
     Footer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Footer.vue", window.sfcOptions))
   },
   setup() {
-    const { ref, reactive, computed, onMounted, onBeforeUnmount, markRaw } = Vue;
+    const { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick, markRaw } = Vue;
+
+    // Step Store'u kullan - global değişkenden
+    const stepStore = window.useStepStore();
 
     // State
     const mainComponent = ref(null);
@@ -46,16 +64,78 @@ export default {
     const isCorrect = ref(false);
     const correctAnswer = ref('');
     const activeExerciseContent = ref(null);
+    const activeExercise = ref(null);
+    
+    // ExerciseContainer'dan gelen özellik
+    const title = computed(() => {
+      // Adım bilgisine göre başlık al
+      return stepStore.currentStep.value.title || '';
+    });
+    
+    // ExerciseController'dan birleştirilen kodlar
+    // Exercise Components - dinamik olarak yükleme
+    const getExerciseComponent = (componentName) => {
+      return markRaw(Vue.defineAsyncComponent(() => 
+        window["vue3-sfc-loader"].loadModule(`./src/exercises/${componentName}.vue`, window.sfcOptions)
+      ));
+    };
+    
+    // Aktif bileşeni hesapla
+    const activeComponent = computed(() => {
+      const currentStep = stepStore.currentStep.value;
+      console.log('MainLayout - activeComponent computed çalıştı, adım:', currentStep.id, 'bileşen:', currentStep.component);
+      
+      // İlgili bileşeni dinamik olarak yükle
+      return getExerciseComponent(currentStep.component);
+    });
+    
+    // Geçerli adım indeksini takip et
+    const currentStepIndex = computed(() => stepStore.currentStepId.value - 1);
+    
+    // Bir sonraki egzersize geç
+    const nextExercise = () => {
+      console.log('MainLayout - nextExercise() çağrıldı');
+      console.log('MainLayout - Moving to next exercise from step:', stepStore.currentStepId.value);
+      
+      // Adımı ilerlet
+      stepStore.nextStep();
+      
+      // Store güncellemesini tetikle
+      triggerStoreUpdate();
+      
+      // Reset the global state after component change
+      nextTick(() => {
+        console.log('MainLayout - nextTick callback çalışıyor');
+        
+        // State'i sıfırla
+        showResult.value = false;
+        isCorrect.value = false;
+        canCheck.value = false;
+        correctAnswer.value = '';
+        
+        // Clean up old references to ensure correct component initialization
+        console.log('MainLayout - activeExerciseComponent sıfırlanıyor');
+        window.activeExerciseComponent = null;
+      });
+    };
+    
+    // Update global reference when component changes
+    watch(activeComponent, (newVal, oldVal) => {
+      console.log('MainLayout - activeComponent değişti!', {
+        eski: oldVal ? oldVal.name : 'null',
+        yeni: newVal ? newVal.name : 'null'
+      });
+      
+      // Clear previous references first
+      window.activeExerciseComponent = null;
+      
+      console.log('MainLayout - Active component changed, waiting for component to initialize...');
+    });
 
     // Computed for active exercise component content
     const activeExerciseHasCustomContent = computed(() => {
       return activeExerciseContent.value !== null;
     });
-
-    // Load main component - using markRaw to prevent reactivity issues
-    mainComponent.value = markRaw(Vue.defineAsyncComponent(() =>
-      window["vue3-sfc-loader"].loadModule("./src/components/ExerciseController.vue", window.sfcOptions)
-    ));
 
     // Get progress and hearts from store
     const getStore = () => window.store || {
@@ -199,21 +279,28 @@ export default {
         isCorrect,
         canCheck,
         correctAnswer,
-        checkAnswer,
-        resetFooter,
-        handleFooterButton,
-        updateResultState,
-        showResultModal,
-        triggerStoreUpdate
+        triggerStoreUpdate, // Export this for other components
+        showResultModal, // Export to allow showing modal externally
+        updateResultState, // Export to allow updating state
+        resetFooter // Export to allow resetting the footer
       };
+
+      // Expose methods to global scope for component interaction
+      window.showResultModal = showResultModal;
+      window.updateResultState = updateResultState;
     });
 
+    // Clean up global references
     onBeforeUnmount(() => {
+      // Remove global references
       window.mainLayout = null;
+      window.showResultModal = null;
+      window.updateResultState = null;
+      window.activeExerciseComponent = null;
     });
 
     return {
-      mainComponent,
+      // Original MainLayout props
       progress,
       hearts,
       canCheck,
@@ -222,12 +309,19 @@ export default {
       correctAnswer,
       footerStateClass,
       buttonText,
-      checkAnswer,
       handleFooterButton,
-      showResultModal,
-      activeExerciseContent,
+      checkAnswer,
       activeExerciseHasCustomContent,
-      triggerStoreUpdate
+      activeExerciseContent,
+      
+      // ExerciseContainer'dan gelen
+      title,
+      
+      // ExerciseController'dan gelenler
+      activeComponent,
+      currentStepIndex,
+      activeExercise,
+      nextExercise
     };
   }
 }
@@ -240,7 +334,6 @@ export default {
   min-height: 100vh;
   padding: 20px 0;
 }
-
 
 .layout-content {
   flex: 1;
@@ -293,5 +386,20 @@ export default {
 .continue-btn {
   letter-spacing: 1px;
   font-weight: 700;
+}
+
+.exercise-container {
+  padding: 1rem 0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.exercise-title {
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.exercise-content {
+  padding: 0;
 }
 </style>
