@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dil Öğrenme Platformu</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Vue.js CDN değiştirildi - daha güvenilir alternatif -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.2.36/dist/vue.global.min.js"></script>
+  <script src="https://unpkg.com/vue-router@4.0.15/dist/vue-router.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
+  <style>
+    body {
+      background-color: #111;
+      color: white;
+      font-family: 'Nunito', sans-serif;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+    }
+    
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #111;
+      z-index: 1000;
+      transition: opacity 0.5s ease;
+    }
+    
+    .loading-screen.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .loading-spinner {
+      width: 80px;
+      height: 80px;
+      border: 6px solid #333;
+      border-top-color: #58a700;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .exercise-transition-enter-active, 
+    .exercise-transition-leave-active {
+      transition: all 0.5s ease;
+    }
+    
+    .exercise-transition-enter-from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    
+    .exercise-transition-leave-to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .card {
+      transition: all 0.3s ease;
+    }
+    
+    .btn {
+      transition: all 0.3s ease;
+    }
+    
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+    
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script>
+    // Create a global store for the application
+    window.store = {
+      // State
+      _state: {
+        progress: 25,
+        hearts: 5,
+        score: 0,
+        currentStep: 1,
+        totalSteps: 4,
+        steps: [
+          { id: 1, name: 'picture-match', title: 'Resimli Kelime Eşleştirme', progressPercentage: 25 },
+          { id: 2, name: 'word-match', title: 'Doğru Çeviriyi Seç', progressPercentage: 50 },
+          { id: 3, name: 'word-builder', title: 'Cümle Oluştur', progressPercentage: 75 },
+          { id: 4, name: 'fill-in-blank', title: 'Boşluk Doldurma', progressPercentage: 100 }
+        ]
+      },
+
+      // Getters
+      getProgress: function () { return this._state.progress; },
+      getHearts: function () { return this._state.hearts; },
+      getScore: function () { return this._state.score; },
+      getCurrentStep: function () { return this._state.currentStep; },
+      getTotalSteps: function () { return this._state.totalSteps; },
+      getCurrentStepInfo: function () {
+        return this._state.steps.find(s => s.id === this._state.currentStep) || this._state.steps[0];
+      },
+
+      // Actions
+      setCurrentStep: function (stepId) {
+        console.log('Setting current step to:', stepId);
+        if (stepId >= 1 && stepId <= this._state.totalSteps) {
+          this._state.currentStep = stepId;
+          const step = this._state.steps.find(s => s.id === stepId);
+          if (step) {
+            this._state.progress = step.progressPercentage;
+          }
+        }
+      },
+
+      decreaseHearts: function () {
+        if (this._state.hearts > 0) {
+          this._state.hearts--;
+        }
+      },
+
+      increaseScore: function (points) {
+        this._state.score += points;
+      },
+
+      nextStep: function () {
+        if (this._state.currentStep < this._state.totalSteps) {
+          this._state.currentStep++;
+        } else {
+          // Loop back to the first step when completing all steps
+          this._state.currentStep = 1;
+        }
+
+        // Update progress based on current step
+        const step = this._state.steps.find(s => s.id === this._state.currentStep);
+        if (step) {
+          this._state.progress = step.progressPercentage;
+        }
+
+        return this._state.steps.find(s => s.id === this._state.currentStep);
+      }
+    };
+
+    // Use the store from src/store/index.js (imported in main.js)
+    window.sfcOptions = {
+      moduleCache: {
+        vue: Vue,
+        "vue-router": VueRouter,
+      },
+      async getFile(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw Object.assign(new Error(`${res.statusText} ${url}`), { res });
+        return await res.text();
+      },
+      addStyle(textContent) {
+        const style = Object.assign(document.createElement("style"), { textContent });
+        const ref = document.head.getElementsByTagName("style")[0] || null;
+        document.head.insertBefore(style, ref);
+      },
+      customModuleResolvers: [
+        (id) => {
+          // Handle composables
+          if (id === '../composables/useTheme' || id === './composables/useTheme') {
+            return './src/composables/useTheme.js';
+          }
+
+          // Handle store
+          if (id === '../store' || id === './store') {
+            return './src/store/index.js';
+          }
+
+          if (id.startsWith('/')) {
+            return id;
+          }
+          return id;
+        }
+      ],
+    };
+
+    // Create theme composable
+    const useTheme = () => {
+      const isDarkMode = Vue.ref(true); // Set default to dark mode
+
+      const initializeTheme = () => {
+        const savedTheme = localStorage.getItem('theme');
+
+        if (savedTheme) {
+          isDarkMode.value = savedTheme === 'dark';
+        } else {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          isDarkMode.value = prefersDark;
+        }
+
+        applyTheme();
+      };
+
+      const applyTheme = () => {
+        if (isDarkMode.value) {
+          document.documentElement.classList.add('dark-theme');
+        } else {
+          document.documentElement.classList.remove('dark-theme');
+        }
+
+        localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
+      };
+
+      const toggleTheme = () => {
+        isDarkMode.value = !isDarkMode.value;
+      };
+
+      Vue.watch(isDarkMode, () => {
+        applyTheme();
+      });
+
+      initializeTheme();
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (localStorage.getItem('theme') === null) {
+          isDarkMode.value = e.matches;
+        }
+      });
+
+      return {
+        isDarkMode,
+        toggleTheme
+      };
+    };
+
+    // Make composables globally available
+    window.useTheme = useTheme;
+
+    // Router configuration
+    const routes = [
+      {
+        path: "/",
+        component: () => window["vue3-sfc-loader"].loadModule("./src/components/MainLayout.vue", window.sfcOptions)
+      },
+      {
+        path: "/:pathMatch(.*)*",
+        redirect: "/",
+      },
+    ];
+
+    // Create router
+    const router = VueRouter.createRouter({
+      history: VueRouter.createWebHashHistory(),
+      routes,
+      linkActiveClass: "active",
+    });
+
+    // Create app
+    const app = Vue.createApp({
+      template: `
+          <div id="app" :class="{ 'dark-theme': isDarkMode }">
+            <router-view />
+          </div>
+        `,
+      setup() {
+        const { isDarkMode } = useTheme();
+        return { isDarkMode };
+      }
+    });
+
+    // Use router
+    app.use(router);
+
+    // Mount app
+    app.mount("#app");
+  </script>
+</body>
+
+</html>
