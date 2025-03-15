@@ -11,27 +11,28 @@
     
     <div class="options-container">
       <div class="option-list d-flex flex-column gap-2">
-        <button 
+        <Button 
           v-for="(option, index) in options" 
           :key="index"
-          class="btn btn-outline-secondary text-start rounded-pill py-3 px-4"
-          :class="selected === index ? 'selected bg-primary text-white' : ''"
+          variant="primaryOutline"
+          :class="selected === index ? 'selected' : ''"
           @click="!showResult && (selected = index)"
           :disabled="showResult"
         >
           {{ option }}
-        </button>
+        </Button>
       </div>
     </div>
   
     <div class="mt-4">
-      <button 
-        class="btn btn-success btn-lg w-100 py-3 rounded-pill text-uppercase"
+      <Button 
+        variant="secondary"
+        size="lg"
         :disabled="selected === null || showResult"
         @click="checkAnswer"
       >
-        PAKITSEK
-      </button>
+        DENETLE
+      </Button>
     </div>
     
     <result-modal 
@@ -55,7 +56,8 @@ export default {
   name: 'WordMatchExercise',
   components: {
     ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions)),
-    ResultModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ResultModal.vue", window.sfcOptions))
+    ResultModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ResultModal.vue", window.sfcOptions)),
+    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
   },
   emits: ['complete'],
   setup(props, { emit }) {

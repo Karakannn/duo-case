@@ -22,27 +22,33 @@ export default {
     const exercises = [
       {
         component: markRaw(Vue.defineAsyncComponent(() => 
-          window["vue3-sfc-loader"].loadModule("./src/exercises/PictureMatchExercise.vue", window.sfcOptions)
-        )),
-        id: 'pictureMatch'
-      },
-      {
-        component: markRaw(Vue.defineAsyncComponent(() => 
-          window["vue3-sfc-loader"].loadModule("./src/exercises/TextInputExercise.vue", window.sfcOptions)
-        )),
-        id: 'textInput'
-      },
-      {
-        component: markRaw(Vue.defineAsyncComponent(() => 
           window["vue3-sfc-loader"].loadModule("./src/exercises/WordBuilderExercise.vue", window.sfcOptions)
         )),
         id: 'wordBuilder'
       },
       {
         component: markRaw(Vue.defineAsyncComponent(() => 
+          window["vue3-sfc-loader"].loadModule("./src/exercises/PictureMatchExercise.vue", window.sfcOptions)
+        )),
+        id: 'pictureMatch'
+      },
+      {
+        component: markRaw(Vue.defineAsyncComponent(() => 
+          window["vue3-sfc-loader"].loadModule("./src/exercises/MatchingExercise.vue", window.sfcOptions)
+        )),
+        id: 'wordMatch'
+      },
+      {
+        component: markRaw(Vue.defineAsyncComponent(() => 
           window["vue3-sfc-loader"].loadModule("./src/exercises/FillInBlankExercise.vue", window.sfcOptions)
         )),
         id: 'fillInBlank'
+      },
+      {
+        component: markRaw(Vue.defineAsyncComponent(() => 
+          window["vue3-sfc-loader"].loadModule("./src/exercises/TextInputExercise.vue", window.sfcOptions)
+        )),
+        id: 'textInput'
       }
     ];
     
@@ -162,10 +168,10 @@ export default {
       // Set progress from store
       const store = window.store || {};
       if (typeof store.setProgress === 'function') {
-        const totalSteps = 4; // Toplam egzersiz adımı
+        const totalSteps = 5; // Toplam egzersiz adımı
         const currentStep = store.getCurrentStep ? store.getCurrentStep() : 1;
         
-        // Geçerli adımın yüzdelik ilerlemesi (25%, 50%, 75%, 100%)
+        // Geçerli adımın yüzdelik ilerlemesi (20%, 40%, 60%, 80%, 100%)
         const progressPercentage = Math.round((currentStep / totalSteps) * 100);
         store.setProgress(progressPercentage);
       }

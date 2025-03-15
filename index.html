@@ -12,90 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3.2.36/dist/vue.global.min.js"></script>
   <script src="https://unpkg.com/vue-router@4.0.15/dist/vue-router.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
-  <style>
-    body {
-      background-color: #111;
-      color: white;
-      font-family: 'Nunito', sans-serif;
-    }
-    
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    @media (max-width: 768px) {
-      .container {
-        padding: 10px;
-      }
-    }
-    
-    .loading-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      width: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
-      background-color: #111;
-      z-index: 1000;
-      transition: opacity 0.5s ease;
-    }
-    
-    .loading-screen.hide {
-      opacity: 0;
-      pointer-events: none;
-    }
-    
-    .loading-spinner {
-      width: 80px;
-      height: 80px;
-      border: 6px solid #333;
-      border-top-color: #58a700;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    
-    .exercise-transition-enter-active, 
-    .exercise-transition-leave-active {
-      transition: all 0.5s ease;
-    }
-    
-    .exercise-transition-enter-from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    
-    .exercise-transition-leave-to {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .card {
-      transition: all 0.3s ease;
-    }
-    
-    .btn {
-      transition: all 0.3s ease;
-    }
-    
-    .btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-    }
-    
-    .btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
-  </style>
+  <link rel="stylesheet" href="./src/styles/theme.css">
 </head>
 
 <body>
@@ -112,9 +29,9 @@
         currentStep: 1,
         totalSteps: 4,
         steps: [
-          { id: 1, name: 'picture-match', title: 'Resimli Kelime Eşleştirme', progressPercentage: 25 },
-          { id: 2, name: 'word-match', title: 'Doğru Çeviriyi Seç', progressPercentage: 50 },
-          { id: 3, name: 'word-builder', title: 'Cümle Oluştur', progressPercentage: 75 },
+          { id: 1, name: 'word-builder', title: 'Cümle Oluştur', progressPercentage: 25 },
+          { id: 2, name: 'picture-match', title: 'Resimli Kelime Eşleştirme', progressPercentage: 50 },
+          { id: 3, name: 'word-match', title: 'Doğru Çeviriyi Seç', progressPercentage: 75 },
           { id: 4, name: 'fill-in-blank', title: 'Boşluk Doldurma', progressPercentage: 100 }
         ]
       },
@@ -262,6 +179,10 @@
       {
         path: "/",
         component: () => window["vue3-sfc-loader"].loadModule("./src/components/MainLayout.vue", window.sfcOptions)
+      },
+      {
+        path: "/button-test",
+        component: () => window["vue3-sfc-loader"].loadModule("./src/pages/ButtonTest.vue", window.sfcOptions)
       },
       {
         path: "/:pathMatch(.*)*",

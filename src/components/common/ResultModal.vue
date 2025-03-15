@@ -29,13 +29,13 @@
       </div>
       
       <!-- Continue Button -->
-      <button 
-        class="btn btn-lg w-100 rounded-pill continue-btn text-uppercase py-3" 
-        :class="isCorrect ? 'btn-success' : 'btn-primary'"
-        @click="onContinue"
+      <Button 
+        :variant="isCorrect ? 'secondary' : 'primary'"
+        size="lg"
+        @click="handleContinue"
       >
         {{ computedContinueText }}
-      </button>
+      </Button>
     </div>
   </div>
 </template>
@@ -43,6 +43,9 @@
 <script>
 export default {
   name: 'ResultModal',
+  components: {
+    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
+  },
   props: {
     show: {
       type: Boolean,
@@ -79,13 +82,13 @@ export default {
       return props.isCorrect ? 'DEVAM ET' : 'ANLADIM';
     });
     
-    function onContinue() {
+    function handleContinue() {
       emit('continue');
     }
     
     return {
       computedContinueText,
-      onContinue
+      handleContinue
     };
   }
 }
@@ -141,17 +144,6 @@ export default {
 
 .solution {
   font-weight: bold;
-}
-
-.continue-btn {
-  border: none;
-  margin: 15px 0 20px;
-  transition: all 0.2s ease;
-}
-
-.continue-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
 }
 
 @keyframes fade-in {

@@ -22,14 +22,14 @@
     <div class="options-container">
       <div class="row g-2 mb-4">
         <div v-for="(option, index) in options" :key="index" class="col-6">
-          <button 
-            class="btn btn-outline-secondary rounded-pill w-100 py-2"
+          <Button 
+            variant="primaryOutline"
             :class="{ 'selected': selectedWord === option }"
             @click="!showResult && (selectedWord = option)"
             :disabled="showResult"
           >
             {{ option }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -40,7 +40,8 @@
 export default {
   name: 'FillInBlankExercise',
   components: {
-    ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions))
+    ExerciseContainer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseContainer.vue", window.sfcOptions)),
+    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
   },
   emits: ['complete'],
   setup(props, { emit }) {
