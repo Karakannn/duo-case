@@ -56,6 +56,7 @@ export default {
     const correctAnswer = "busy";
     const selectedWord = ref("");
     const isCorrect = ref(false);
+    const isChecked = ref(false);
     const showResult = ref(false);
     
     // Get correct answer text for display
@@ -63,35 +64,56 @@ export default {
       return correctAnswer;
     };
     
+    // Get result content for result modal
+    const getResultContent = () => {
+      // Bu fonksiyon, sonuç modalında gösterilecek özel içeriği oluşturabilir
+      const h = Vue.h;
+      return h('div', { class: 'answer-section my-3' }, [
+        h('div', { class: 'mb-2 fs-5' }, [
+          h('span', {}, sentencePrefix + ' '),
+          h('span', { 
+            class: isCorrect.value ? 'text-success fw-bold' : 'text-danger fw-bold'
+          }, selectedWord.value),
+          h('span', {}, ' ' + sentenceSuffix)
+        ])
+      ]);
+    };
+    
     // Check answer
     const checkAnswer = () => {
       console.log('FillInBlankExercise - checkAnswer() çağrıldı');
-      if (!selectedWord.value) return;
+      if (!selectedWord.value) {
+        console.log('FillInBlankExercise - Seçili kelime yok, işlem yapılmadı');
+        return;
+      }
       
+      isChecked.value = true;
       isCorrect.value = selectedWord.value === correctAnswer;
-      showResult.value = true;
+      console.log('FillInBlankExercise - Cevap kontrol edildi:', isCorrect.value ? 'doğru' : 'yanlış');
       
-      // Update store
-      const store = window.store || {};
-      if (isCorrect.value && store.increaseScore) {
-        console.log('FillInBlankExercise - store.increaseScore çağrılıyor');
-        store.increaseScore(15);
-      } else if (!isCorrect.value && store.decreaseHearts) {
-        console.log('FillInBlankExercise - store.decreaseHearts çağrılıyor');
-        store.decreaseHearts();
-      }
-      
-      // Update layout state
+      // Update main layout
       if (window.mainLayout) {
-        console.log('FillInBlankExercise - mainLayout state güncelleniyor');
-        window.mainLayout.showResult.value = true;
-        window.mainLayout.isCorrect.value = isCorrect.value;
-        window.mainLayout.correctAnswer.value = getCorrectAnswerText();
+        const mainLayout = window.mainLayout;
+        
+        // Cevap doğruysa puan artır
+        if (isCorrect.value && window.store && typeof window.store.increaseScore === 'function') {
+          window.store.increaseScore(10); // Her doğru cevap için 10 puan
+          console.log('FillInBlankExercise - Puan artırıldı:', window.store.getScore());
+        }
+        
+        // Sonuç ekranını göster
+        mainLayout.updateResultState({
+          show: true,
+          isCorrect: isCorrect.value,
+          correctAnswer: isCorrect.value ? '' : getCorrectAnswerText()
+        });
+        
+        // Sonucu bildir
+        mainLayout.showResultModal(isCorrect.value);
       } else {
-        console.error('FillInBlankExercise - window.mainLayout mevcut değil!');
+        console.error('FillInBlankExercise - window.mainLayout bulunamadı!');
       }
       
-      console.log('FillInBlankExercise - isCorrect:', isCorrect.value);
       return isCorrect.value;
     };
     
@@ -100,6 +122,7 @@ export default {
       console.log('FillInBlankExercise - reset() çağrıldı');
       selectedWord.value = "";
       isCorrect.value = false;
+      isChecked.value = false;
       showResult.value = false;
       if (window.mainLayout) window.mainLayout.canCheck.value = false;
     };
@@ -131,7 +154,8 @@ export default {
         checkAnswer,
         isCorrect,
         getCorrectAnswerText,
-        onContinue
+        onContinue,
+        renderResultContent: getResultContent
       };
       console.log('FillInBlankExercise - activeExerciseComponent:', window.activeExerciseComponent);
     });
@@ -143,7 +167,7 @@ export default {
     
     return {
       title, sentenceImage, sentencePrefix, sentenceSuffix, placeholder,
-      options, correctAnswer, selectedWord, isCorrect, showResult, 
+      options, correctAnswer, selectedWord, isCorrect, isChecked, showResult, 
       checkAnswer, reset
     };
   }

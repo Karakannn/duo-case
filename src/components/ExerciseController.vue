@@ -92,10 +92,17 @@ export default {
       if (store.nextStep) {
         try {
           console.log('ExerciseController - store.nextStep() çağrılıyor...');
+          // nextStep zaten içeride progress'i güncelliyor, ayrıca güncellemeye gerek yok
           store.nextStep();
           
           // Force Vue to react by updating local step
           syncCurrentStep();
+          
+          // MainLayout'ı da güncelle (eğer mevcutsa)
+          if (window.mainLayout && typeof window.mainLayout.triggerStoreUpdate === 'function') {
+            window.mainLayout.triggerStoreUpdate();
+            console.log('ExerciseController - MainLayout store güncellemesi tetiklendi');
+          }
           
           console.log('ExerciseController - Advanced to next step in lesson. New step:', currentStep.value);
         } catch (err) {

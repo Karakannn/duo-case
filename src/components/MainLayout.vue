@@ -35,6 +35,18 @@
       </div>
     </div>
 
+    <!-- Sonuç Modalı (Son durumu göstermek için) -->
+    <result-modal 
+      :show="showResult" 
+      :is-correct="isCorrect" 
+      :correct-answer="correctAnswer"
+      @continue="handleFooterButton"
+    >
+      <template v-if="activeExerciseHasCustomContent" #answer-content>
+        <component :is="activeExerciseContent" />
+      </template>
+    </result-modal>
+
     <!-- Global Footer -->
     <div class="footer" :class="footerStateClass">
       <div class="footer-status" v-if="showResult">
@@ -64,6 +76,9 @@
 <script>
 export default {
   name: 'MainLayout',
+  components: {
+    ResultModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ResultModal.vue", window.sfcOptions))
+  },
   setup() {
     const { ref, reactive, computed, onMounted, onBeforeUnmount, markRaw } = Vue;
     
@@ -73,6 +88,12 @@ export default {
     const showResult = ref(false);
     const isCorrect = ref(false);
     const correctAnswer = ref('');
+    const activeExerciseContent = ref(null);
+    
+    // Computed for active exercise component content
+    const activeExerciseHasCustomContent = computed(() => {
+      return activeExerciseContent.value !== null;
+    });
     
     // Load main component - using markRaw to prevent reactivity issues
     mainComponent.value = markRaw(Vue.defineAsyncComponent(() => 
@@ -85,12 +106,25 @@ export default {
       getHearts: () => 5
     };
     
+    // UI'ı zorla güncellemek için bir reaktif değer
+    const storeUpdateTrigger = ref(0);
+    
+    // Store değerleri her değiştiğinde bu fonksiyonu çağırarak UI'ı güncelleme
+    const triggerStoreUpdate = () => {
+      storeUpdateTrigger.value += 1;
+      console.log('MainLayout - Store update tetiklendi:', storeUpdateTrigger.value);
+    };
+    
     const progress = computed(() => {
+      // storeUpdateTrigger değeri değişince computed yeniden hesaplanacak
+      const triggerUpdate = storeUpdateTrigger.value;
       const store = getStore();
       return store.getProgress ? store.getProgress() : 25;
     });
     
     const hearts = computed(() => {
+      // storeUpdateTrigger değeri değişince computed yeniden hesaplanacak
+      const triggerUpdate = storeUpdateTrigger.value;
       const store = getStore();
       return store.getHearts ? store.getHearts() : 5;
     });
@@ -129,36 +163,59 @@ export default {
       }
     };
     
+    // Update active exercise content
+    const updateExerciseContent = () => {
+      console.log('MainLayout - updateExerciseContent çağrıldı');
+      if (window.activeExerciseComponent && window.activeExerciseComponent.renderResultContent) {
+        activeExerciseContent.value = window.activeExerciseComponent.renderResultContent;
+      } else {
+        activeExerciseContent.value = null;
+      }
+    };
+
     const showResultModal = (isCorrectVal) => {
       console.log('MainLayout - showResultModal çağrıldı, isCorrect:', isCorrectVal);
       showResult.value = true;
       isCorrect.value = isCorrectVal;
+      updateExerciseContent(); // Aktif egzersizin içeriğini güncelle
     };
 
     const handleFooterButton = () => {
       console.log('MainLayout - handleFooterButton çağrıldı, showResult:', showResult.value);
       
       if (showResult.value) {
-        // User clicked "DEVAM ET" after seeing result
-        console.log('MainLayout - Sonuç gösteriliyor, DEVAM ET butonuna basıldı');
+        // User clicked "DEVAM ET" or "ANLADIM" after seeing result
+        console.log('MainLayout - Sonuç gösteriliyor, butonuna basıldı');
         
-        if (window.activeExerciseComponent && window.activeExerciseComponent.onContinue) {
-          console.log('MainLayout - activeExerciseComponent.onContinue() çağrılıyor');
-          window.activeExerciseComponent.onContinue();
+        if (isCorrect.value) {
+          // Doğru cevap - bir sonraki egzersize ilerle
+          console.log('MainLayout - Doğru cevap, bir sonraki egzersize geçiliyor');
+          
+          if (window.activeExerciseComponent && window.activeExerciseComponent.onContinue) {
+            console.log('MainLayout - activeExerciseComponent.onContinue() çağrılıyor');
+            window.activeExerciseComponent.onContinue();
+            // Store değişecek, UI güncellemesini tetikleme
+            triggerStoreUpdate();
+          } else {
+            console.error('MainLayout - activeExerciseComponent veya onContinue metodu bulunamadı!');
+          }
         } else {
-          console.error('MainLayout - activeExerciseComponent veya onContinue metodu bulunamadı!');
+          // Yanlış cevap - modalı kapat, aynı soruyu tekrar göster
+          console.log('MainLayout - Yanlış cevap, modal kapatılıyor');
+          resetFooter();
+          
+          // Kalbi azalt (eğer store'da bu fonksiyon varsa)
+          if (window.store && typeof window.store.decreaseHearts === 'function') {
+            window.store.decreaseHearts();
+            console.log('MainLayout - Can azaltıldı, kalan can:', window.store.getHearts());
+            // UI'ı güncellemek için tetikle
+            triggerStoreUpdate();
+          }
         }
       } else {
         // User clicked "KONTROL ET"
         console.log('MainLayout - Cevap kontrol ediliyor, KONTROL ET butonuna basıldı');
-        
-        if (window.activeExerciseComponent && window.activeExerciseComponent.checkAnswer) {
-          console.log('MainLayout - activeExerciseComponent.checkAnswer() çağrılıyor');
-          const result = window.activeExerciseComponent.checkAnswer();
-          console.log('MainLayout - checkAnswer sonucu:', result);
-        } else {
-          console.error('MainLayout - activeExerciseComponent veya checkAnswer metodu bulunamadı!');
-        }
+        checkAnswer();
       }
     };
     
@@ -173,26 +230,27 @@ export default {
       console.log('MainLayout - resetFooter() çağrıldı');
       showResult.value = false;
       isCorrect.value = false;
-      correctAnswer.value = '';
       canCheck.value = false;
+      correctAnswer.value = '';
+      activeExerciseContent.value = null; // İçeriği de sıfırla
     };
     
-    // Make the component globally accessible
+    // Make methods accessible for global access
     onMounted(() => {
       window.mainLayout = {
-        canCheck,
         showResult,
         isCorrect,
+        canCheck,
         correctAnswer,
         checkAnswer,
         resetFooter,
         handleFooterButton,
         updateResultState,
-        showResultModal
+        showResultModal,
+        triggerStoreUpdate
       };
     });
     
-    // Clean up
     onBeforeUnmount(() => {
       window.mainLayout = null;
     });
@@ -209,7 +267,10 @@ export default {
       buttonText,
       checkAnswer,
       handleFooterButton,
-      showResultModal
+      showResultModal,
+      activeExerciseContent,
+      activeExerciseHasCustomContent,
+      triggerStoreUpdate
     };
   }
 }
@@ -220,21 +281,50 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 16px;
-  max-width: 600px;
-  margin: 0 auto;
-  box-sizing: border-box;
+  padding: 20px 0;
 }
 
 .exercise-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  padding: 0 1rem;
 }
 
 .layout-content {
   flex: 1;
-  padding-bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+}
+
+.footer {
+  padding: 1rem;
+  margin-top: auto;
+  background-color: #222;
+  border-top: 1px solid #333;
+  transition: all 0.3s ease;
+}
+
+.footer.correct-state {
+  background-color: rgba(25, 135, 84, 0.15);
+}
+
+.footer.incorrect-state {
+  background-color: rgba(220, 53, 69, 0.15);
+}
+
+.footer-status {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background-color: #333;
+}
+
+.correct-answer {
+  color: #28a745;
+}
+
+.incorrect-answer {
+  color: #dc3545;
 }
 
 .loading-container {
@@ -242,50 +332,12 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 300px;
-}
-
-.footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #1a1a1a;
-  padding: 12px 16px;
-  z-index: 1000;
-  border-top: 1px solid #333;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.footer-status {
-  margin-bottom: 12px;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 1.1rem;
-}
-
-.correct-state .footer-status {
-  background-color: rgba(88, 167, 0, 0.2);
-}
-
-.incorrect-state .footer-status {
-  background-color: rgba(220, 53, 69, 0.2);
+  height: 100%;
+  padding: 2rem;
 }
 
 .continue-btn {
-  font-weight: bold;
-}
-
-.continue-btn:disabled {
-  opacity: 0.5;
-}
-
-.back-button {
-  cursor: pointer;
-}
-
-.back-button i:hover {
-  color: white !important;
+  letter-spacing: 1px;
+  font-weight: 700;
 }
 </style>

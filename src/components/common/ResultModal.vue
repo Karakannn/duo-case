@@ -76,7 +76,7 @@ export default {
       if (props.continueText) {
         return props.continueText;
       }
-      return props.isCorrect ? 'DEVAM' : 'ANLADIM';
+      return props.isCorrect ? 'DEVAM ET' : 'ANLADIM';
     });
     
     function onContinue() {

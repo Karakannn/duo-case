@@ -67,34 +67,37 @@ export default {
       }
     };
     
-    // Check answer and update state
+    // Check the selected answer
     const checkAnswer = () => {
       console.log('PictureMatchExercise - checkAnswer() çağrıldı');
       if (selected.value === null) return;
       
       isCorrect.value = selected.value === correctIndex;
-      showResult.value = true;
+      console.log('PictureMatchExercise - cevap kontrol edildi:', isCorrect.value ? 'doğru' : 'yanlış');
       
-      const store = window.store || {};
-      if (isCorrect.value && store.increaseScore) {
-        console.log('PictureMatchExercise - store.increaseScore çağrılıyor');
-        store.increaseScore(10);
-      } else if (!isCorrect.value && store.decreaseHearts) {
-        console.log('PictureMatchExercise - store.decreaseHearts çağrılıyor');
-        store.decreaseHearts();
-      }
-      
-      // Update layout state
+      // Update main layout
       if (window.mainLayout) {
-        console.log('PictureMatchExercise - mainLayout state güncelleniyor');
-        window.mainLayout.showResult.value = true;
-        window.mainLayout.isCorrect.value = isCorrect.value;
-        window.mainLayout.correctAnswer.value = getCorrectAnswerText();
+        const mainLayout = window.mainLayout;
+        
+        // Cevap doğruysa puan artır
+        if (isCorrect.value && window.store && typeof window.store.increaseScore === 'function') {
+          window.store.increaseScore(10); // Her doğru cevap için 10 puan
+          console.log('PictureMatchExercise - Puan artırıldı:', window.store.getScore());
+        }
+        
+        // Sonuç ekranını göster
+        mainLayout.updateResultState({
+          show: true,
+          isCorrect: isCorrect.value,
+          correctAnswer: isCorrect.value ? '' : getCorrectAnswerText()
+        });
+        
+        // Sonucu bildir
+        mainLayout.showResultModal(isCorrect.value);
       } else {
-        console.error('PictureMatchExercise - window.mainLayout mevcut değil!');
+        console.error('PictureMatchExercise - window.mainLayout bulunamadı!');
       }
       
-      console.log('PictureMatchExercise - isCorrect:', isCorrect.value);
       return isCorrect.value;
     };
     
@@ -119,6 +122,31 @@ export default {
       }
     };
     
+    // Get the result content for result modal
+    const getResultContent = () => {
+      // Bu fonksiyon, sonuç modalında gösterilecek özel içeriği oluşturabilir
+      const h = Vue.h;
+      if (correctIndex === null || correctIndex < 0 || !options.value || !options.value[correctIndex]) {
+        // Geçerli bir seçenek yoksa boş bir div döndür
+        return h('div', { class: 'mb-3 p-3 rounded-3' }, []);
+      }
+
+      return h('div', { class: 'mb-3 p-3 rounded-3' }, [
+        h('div', { class: 'mb-2 fs-5 ' + (isCorrect.value ? 'text-success' : 'text-danger') }, [
+          h('i', { class: isCorrect.value ? 'fas fa-check-circle me-2' : 'fas fa-times-circle me-2' }),
+          h('span', { class: 'fw-bold' }, isCorrect.value ? 'Doğru!' : 'Yanlış'),
+          h('div', { class: 'mt-3' }, [
+            h('img', { 
+              src: options.value[correctIndex].image, 
+              alt: options.value[correctIndex].text,
+              style: 'max-height: 120px; max-width: 100%;',
+              class: 'rounded-3'
+            })
+          ])
+        ])
+      ]);
+    };
+    
     // Initialize
     onMounted(() => {
       console.log('PictureMatchExercise - onMounted çağrıldı');
@@ -134,7 +162,8 @@ export default {
         checkAnswer,
         isCorrect,
         getCorrectAnswerText,
-        onContinue
+        onContinue,
+        renderResultContent: getResultContent
       };
       console.log('PictureMatchExercise - activeExerciseComponent:', window.activeExerciseComponent);
     });
@@ -158,7 +187,8 @@ export default {
       selectOption,
       getCorrectAnswerText,
       reset, 
-      onContinue
+      onContinue,
+      getResultContent
     };
   }
 }

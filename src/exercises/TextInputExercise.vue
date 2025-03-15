@@ -47,56 +47,79 @@ export default {
     const userInput = ref("");
     const isCorrect = ref(false);
     const showResult = ref(false);
-    
-    // Check if the answer is close enough to be considered correct
-    const isAnswerCorrect = (input) => {
-      // Convert both strings to lowercase and trim whitespace for comparison
-      const normalizedInput = input.toLowerCase().trim();
-      const normalizedCorrect = correctAnswer.toLowerCase().trim();
-      
-      // For now, simple exact match
-      return normalizedInput === normalizedCorrect;
-    };
+    const isChecked = ref(false);
     
     // Get correct answer text for display
     const getCorrectAnswerText = () => {
       return correctAnswer;
     };
     
+    // Get result content for result modal
+    const getResultContent = () => {
+      // Bu fonksiyon, sonuç modalında gösterilecek özel içeriği oluşturabilir
+      const h = Vue.h;
+      return h('div', { class: 'answer-section my-3' }, [
+        h('div', { class: 'fs-5' }, [
+          h('p', { class: 'mb-1' }, 'Çeviriniz:'),
+          h('p', { 
+            class: isCorrect.value ? 'text-success fw-bold' : 'text-danger fw-bold line-through'
+          }, userInput.value || ''),
+          !isCorrect.value && h('p', { class: 'text-success mt-2' }, [
+            h('i', { class: 'fas fa-check-circle me-2' }),
+            h('span', {}, correctAnswer)
+          ])
+        ])
+      ]);
+    };
+    
     // Handle submit (check answer)
     const handleSubmit = () => {
       console.log('TextInputExercise - handleSubmit() çağrıldı');
-      if (!userInput.value) return false;
-      
-      isCorrect.value = isAnswerCorrect(userInput.value);
-      showResult.value = true;
-      
-      // Update store with score or decrease hearts
-      const store = window.store || {};
-      if (isCorrect.value && store.increaseScore) {
-        console.log('TextInputExercise - store.increaseScore çağrılıyor');
-        store.increaseScore(10);
-      } else if (!isCorrect.value && store.decreaseHearts) {
-        console.log('TextInputExercise - store.decreaseHearts çağrılıyor');
-        store.decreaseHearts();
-      }
-      
-      // Update layout state
-      if (window.mainLayout) {
-        console.log('TextInputExercise - mainLayout state güncelleniyor');
-        window.mainLayout.showResult.value = true;
-        window.mainLayout.isCorrect.value = isCorrect.value;
-        window.mainLayout.correctAnswer.value = getCorrectAnswerText();
-      } else {
-        console.error('TextInputExercise - window.mainLayout mevcut değil!');
-      }
-      
-      console.log('TextInputExercise - isCorrect:', isCorrect.value);
-      return isCorrect.value;
+      checkAnswer();
     };
     
-    // Check answer (alias for handleSubmit)
-    const checkAnswer = handleSubmit;
+    // Check answer
+    const checkAnswer = () => {
+      console.log('TextInputExercise - checkAnswer() çağrıldı');
+      if (!userInput.value) {
+        console.log('TextInputExercise - Kullanıcı girdisi boş, işlem yapılmadı');
+        return;
+      }
+      
+      isChecked.value = true;
+      
+      // Türkçe karakterlerden ve büyük/küçük harf farkından bağımsız karşılaştırma
+      const normalizedUserInput = userInput.value.toLowerCase().trim();
+      const normalizedCorrectAnswer = correctAnswer.toLowerCase().trim();
+      
+      isCorrect.value = normalizedUserInput === normalizedCorrectAnswer;
+      console.log('TextInputExercise - Cevap kontrol edildi:', isCorrect.value ? 'doğru' : 'yanlış');
+      
+      // Update main layout
+      if (window.mainLayout) {
+        const mainLayout = window.mainLayout;
+        
+        // Cevap doğruysa puan artır
+        if (isCorrect.value && window.store && typeof window.store.increaseScore === 'function') {
+          window.store.increaseScore(15); // Metin girdisi zor olduğu için biraz daha fazla puan
+          console.log('TextInputExercise - Puan artırıldı:', window.store.getScore());
+        }
+        
+        // Sonuç ekranını göster
+        mainLayout.updateResultState({
+          show: true,
+          isCorrect: isCorrect.value,
+          correctAnswer: isCorrect.value ? '' : getCorrectAnswerText()
+        });
+        
+        // Sonucu bildir
+        mainLayout.showResultModal(isCorrect.value);
+      } else {
+        console.error('TextInputExercise - window.mainLayout bulunamadı!');
+      }
+      
+      return isCorrect.value;
+    };
     
     // Reset the exercise
     const reset = () => {
@@ -104,6 +127,7 @@ export default {
       userInput.value = "";
       isCorrect.value = false;
       showResult.value = false;
+      isChecked.value = false;
       if (window.mainLayout) window.mainLayout.canCheck.value = false;
     };
     
@@ -134,7 +158,8 @@ export default {
         checkAnswer,
         isCorrect,
         getCorrectAnswerText,
-        onContinue
+        onContinue,
+        renderResultContent: getResultContent
       };
       console.log('TextInputExercise - activeExerciseComponent:', window.activeExerciseComponent);
     });
