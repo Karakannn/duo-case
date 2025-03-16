@@ -1,7 +1,7 @@
 // useWordMatch.js - Kelime Eşleştirme egzersizi composable'ı
 
 (function() {
-  const { ref, computed, watch } = Vue;
+  const { ref } = Vue;
 
   window.useWordMatch = function(props) {
     // Ortak egzersiz temelini kullan
@@ -14,22 +14,21 @@
       }
     });
     
-    // Bileşene özel state
+    // State
     const word = ref('');
     const options = ref([]);
     const correctOption = ref('');
     const selectedOption = ref(null);
     
-    // Egzersiz verilerini yükle
-    const loadExerciseData = () => {
+    // Init: Egzersiz verilerini yükle
+    const init = () => {
+      exercise.loadExerciseDataFromProps();
+      
       if (exercise.exerciseData.value.question) {
         const questionData = exercise.exerciseData.value.question;
-        
         word.value = questionData.word || '';
         options.value = questionData.options || [];
         correctOption.value = questionData.correctOption || '';
-        
-        // Seçimi sıfırla
         selectedOption.value = null;
       }
     };
@@ -37,22 +36,17 @@
     // Bir seçenek seç
     const selectOption = (option) => {
       selectedOption.value = option;
-      
-      // Check butonunu aktifleştir
       exercise.updateCheckButton(true);
     };
     
     // Cevabı kontrol et
     const checkAnswer = () => {
       const isCorrect = selectedOption.value === correctOption.value;
-      
-      const result = {
+      return exercise.checkAnswer({
         isCorrect,
         userAnswer: selectedOption.value,
         correctAnswer: correctOption.value
-      };
-      
-      return exercise.checkAnswer(result);
+      });
     };
     
     // Sonuç içeriğini oluştur
@@ -60,11 +54,8 @@
       return exercise.renderResultContent(isCorrect, correctOption.value);
     };
     
-    // Props değişikliğini izle ve veriyi yükle
-    watch(() => props.exerciseData, () => {
-      exercise.loadExerciseDataFromProps();
-      loadExerciseData();
-    }, { deep: true, immediate: true });
+    // Sonraki egzersiz
+    const onContinue = exercise.onContinue;
     
     return {
       // State
@@ -73,16 +64,11 @@
       selectedOption,
       
       // Methods
+      init,
       selectOption,
       checkAnswer,
-      onContinue: exercise.onContinue,
-      renderResultContent,
-      
-      // Initial Setup
-      init: () => {
-        exercise.loadExerciseDataFromProps();
-        loadExerciseData();
-      }
+      onContinue,
+      renderResultContent
     };
   };
 })();

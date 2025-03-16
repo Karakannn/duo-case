@@ -1,7 +1,7 @@
 // useTextInput.js - Metin Girişi egzersizi composable'ı
 
 (function() {
-  const { ref, computed, watch } = Vue;
+  const { ref } = Vue;
 
   window.useTextInput = function(props) {
     // Ortak egzersiz temelini kullan
@@ -14,22 +14,21 @@
       }
     });
     
-    // Bileşene özel state
+    // State
     const prompt = ref('');
     const correctText = ref('');
     const allowPartialMatch = ref(false);
     const userInput = ref('');
     
-    // Egzersiz verilerini yükle
-    const loadExerciseData = () => {
+    // Init: Egzersiz verilerini yükle
+    const init = () => {
+      exercise.loadExerciseDataFromProps();
+      
       if (exercise.exerciseData.value.question) {
         const questionData = exercise.exerciseData.value.question;
-        
         prompt.value = questionData.prompt || '';
         correctText.value = questionData.correctText || '';
         allowPartialMatch.value = questionData.allowPartialMatch || false;
-        
-        // Kullanıcı girdisini sıfırla
         userInput.value = '';
       }
     };
@@ -40,8 +39,6 @@
     // Kullanıcı girişini güncelle
     const updateInput = (text) => {
       userInput.value = text;
-      
-      // Check butonunu aktifleştir
       exercise.updateCheckButton(text.length > 0);
     };
     
@@ -65,13 +62,11 @@
         isCorrect = normalizedInput === normalizedCorrect;
       }
       
-      const result = {
+      return exercise.checkAnswer({
         isCorrect,
         userAnswer: userInput.value,
         correctAnswer: correctText.value
-      };
-      
-      return exercise.checkAnswer(result);
+      });
     };
     
     // Sonuç içeriğini oluştur
@@ -79,11 +74,8 @@
       return exercise.renderResultContent(isCorrect, correctText.value);
     };
     
-    // Props değişikliğini izle ve veriyi yükle
-    watch(() => props.exerciseData, () => {
-      exercise.loadExerciseDataFromProps();
-      loadExerciseData();
-    }, { deep: true, immediate: true });
+    // Sonraki egzersiz
+    const onContinue = exercise.onContinue;
     
     return {
       // State
@@ -91,16 +83,11 @@
       userInput,
       
       // Methods
+      init,
       updateInput,
       checkAnswer,
-      onContinue: exercise.onContinue,
-      renderResultContent,
-      
-      // Initial Setup
-      init: () => {
-        exercise.loadExerciseDataFromProps();
-        loadExerciseData();
-      }
+      onContinue,
+      renderResultContent
     };
   };
 })();
