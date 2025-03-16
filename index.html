@@ -10,11 +10,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Vue.js CDN değiştirildi - daha güvenilir alternatif -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3.2.36/dist/vue.global.min.js"></script>
-  <script src="https://unpkg.com/vue-router@4.0.15/dist/vue-router.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
   <link rel="stylesheet" href="./src/styles/theme.css">
-  <!-- Önce store yönetimi composable'larını yükle -->
+  <!-- Önce registry ve temel composable'ları yükle -->
+  <script src="./src/composables/useExerciseRegistry.js"></script>
   <script src="./src/composables/useExercise.js"></script>
+  <!-- Egzersiz kompozisyonlarını yükle -->
+  <script src="./src/composables/exercises/useWordMatch.js"></script>
+  <script src="./src/composables/exercises/useFillInBlank.js"></script>
+  <script src="./src/composables/exercises/useWordBuilder.js"></script>
+  <script src="./src/composables/exercises/usePictureMatch.js"></script>
+  <script src="./src/composables/exercises/useTextInput.js"></script>
+  <!-- Merkezi egzersiz adımlarını tanımla -->
+  <script src="./src/store/ExerciseSteps.js"></script>
+  <!-- Store yönetimi -->
   <script src="./src/store/StepStore.js"></script>
 </head>
 
@@ -25,7 +34,6 @@
     window.sfcOptions = {
       moduleCache: {
         vue: Vue,
-        "vue-router": VueRouter,
       },
       async getFile(url) {
         const res = await fetch(url);
@@ -109,47 +117,23 @@
     // Make composables globally available
     window.useTheme = useTheme;
 
-    // Router configuration
-    const routes = [
-      {
-        path: "/",
-        component: () => window["vue3-sfc-loader"].loadModule("./src/components/MainLayout.vue", window.sfcOptions)
-      },
-      {
-        path: "/button-test",
-        component: () => window["vue3-sfc-loader"].loadModule("./src/pages/ButtonTest.vue", window.sfcOptions)
-      },
-      {
-        path: "/:pathMatch(.*)*",
-        redirect: "/",
-      },
-    ];
-
-    // Create router
-    const router = VueRouter.createRouter({
-      history: VueRouter.createWebHashHistory(),
-      routes,
-      linkActiveClass: "active",
-    });
-
-    // Create app
+    // Initialize app with Vue
     const app = Vue.createApp({
-      template: `
-          <div id="app" :class="{ 'dark-theme': isDarkMode }">
-            <router-view />
-          </div>
-        `,
-      setup() {
-        // Merkezi store'u başlat
-        window.initializeGlobalStore();
-        
-        const { isDarkMode } = useTheme();
-        return { isDarkMode };
+      template: '<MainLayout />',
+      components: {
+        MainLayout: Vue.defineAsyncComponent(() => 
+          window["vue3-sfc-loader"].loadModule("./src/components/MainLayout.vue", window.sfcOptions)
+        )
       },
+      setup() {
+        // Initialize step store
+        window.useStepStore();
+        return {};
+      }
     });
 
-    // Use router
-    app.use(router);
+    // Log before mount - debug purposes
+    console.log("Uygulama başlatılıyor...");
 
     // Mount app
     app.mount("#app");

@@ -67,55 +67,109 @@
 <script>
 export default {
   name: 'MatchingExercise',
-  components: {
-  },
+  components: {},
   emits: ['complete'],
   setup(props, { emit }) {
     const { ref, computed, onMounted, watch } = Vue;
     
-    // Merkezi store ve exercise manager'ı kullan
-    const stepStore = window.useStepStore();
-    const exerciseManager = window.useExercise({
-      exerciseName: 'picture-match' // Aynı doğrulayıcıyı kullanabiliriz, çünkü mantık benzer
-    });
+    // Gerekli kompozisyonu içe aktar
+    const matchExercise = window.usePictureMatch();
+    const exerciseBase = window.useExercise({ exerciseName: 'matching' });
     
     // State
-    const title = "Eşleştirmeleri tamamlayın";
-    const audioWord = null;  // Eğer ses çalınacaksa
+    const title = ref("Eşleştirmeleri tamamlayın");
+    const audioWord = ref(null);  // Eğer ses çalınacaksa
     
-    // Eşleştirilecek öğeler (sol taraf)
-    const leftItems = ref([
-      { id: 1, text: "bir" },
-      { id: 2, text: "dört" },
-      { id: 3, text: "otuz" },
-      { id: 4, text: "otobüs" },
-      { id: 5, text: "kedi" }
-    ]);
-    
-    // Eşleştirilecek öğeler (sağ taraf)
-    const rightItems = ref([
-      { id: 1, text: "one" },
-      { id: 2, text: "four" },
-      { id: 3, text: "thirty" },
-      { id: 4, text: "bus" },
-      { id: 5, text: "cat" }
-    ]);
+    // Eşleştirilecek öğeler
+    const leftItems = ref([]);
+    const rightItems = ref([]);
     
     // Doğru eşleştirmeler (id bazında)
-    const correctMatches = [
-      { leftId: 1, rightId: 1 },
-      { leftId: 2, rightId: 2 },
-      { leftId: 3, rightId: 3 },
-      { leftId: 4, rightId: 4 },
-      { leftId: 5, rightId: 5 }
-    ];
+    const correctMatches = ref([]);
     
     // Kullanıcının seçimleri
     const selectedLeft = ref(null);
     const selectedRight = ref(null);
     
-    // Yapılan eşleştirmeler
+    // Yapılan eşleştirmeler - state'i kompozisyondan kullan
     const matches = ref([]);
+    
+    // Mevcut adım bilgisini yükle
+    const loadCurrentStepData = () => {
+      const stepData = exerciseBase.getCurrentStepData();
+      
+      if (stepData && stepData.type === 'matching' && stepData.question) {
+        // Adım verisinden soru bilgisini al
+        if (stepData.question.audioWord) {
+          audioWord.value = stepData.question.audioWord;
+        } else {
+          audioWord.value = null;
+        }
+        
+        // Eşleştirme öğelerini yükle
+        if (stepData.question.leftItems && stepData.question.rightItems) {
+          leftItems.value = stepData.question.leftItems;
+          rightItems.value = stepData.question.rightItems;
+          
+          // Doğru eşleştirmeleri belirle
+          if (stepData.question.correctMatches) {
+            correctMatches.value = stepData.question.correctMatches;
+          } else {
+            // Eğer doğru eşleştirmeler belirtilmemişse, varsayılan olarak aynı index'leri eşleştir
+            correctMatches.value = leftItems.value.map((item, index) => ({
+              leftId: item.id,
+              rightId: rightItems.value[index].id
+            }));
+          }
+        } else {
+          // Varsayılan değerleri kullan
+          loadDefaultData();
+        }
+        
+        console.log('Matching exercise loaded with data:', stepData);
+      } else {
+        // Adım verisi bulunamazsa varsayılan değerleri kullan
+        loadDefaultData();
+        console.warn('No matching step data found for Matching, using default values');
+      }
+      
+      // Bileşen durumunu sıfırla
+      selectedLeft.value = null;
+      selectedRight.value = null;
+      matches.value = [];
+      
+      // Egzersiz için global değişkenleri güncelle
+      window.currentExercise = {
+        correctPairs: formatCorrectPairs()
+      };
+    };
+    
+    // Varsayılan değerleri yükle
+    const loadDefaultData = () => {
+      leftItems.value = [
+        { id: 1, text: "bir" },
+        { id: 2, text: "dört" },
+        { id: 3, text: "otuz" },
+        { id: 4, text: "otobüs" },
+        { id: 5, text: "kedi" }
+      ];
+      
+      rightItems.value = [
+        { id: 1, text: "one" },
+        { id: 2, text: "four" },
+        { id: 3, text: "thirty" },
+        { id: 4, text: "bus" },
+        { id: 5, text: "cat" }
+      ];
+      
+      correctMatches.value = [
+        { leftId: 1, rightId: 1 },
+        { leftId: 2, rightId: 2 },
+        { leftId: 3, rightId: 3 },
+        { leftId: 4, rightId: 4 },
+        { leftId: 5, rightId: 5 }
+      ];
+    };
     
     // İlerleme durumu
     const isComplete = computed(() => matches.value.length === leftItems.value.length);
@@ -144,12 +198,20 @@ export default {
       // Eğer her iki taraftan da bir öğe seçilmişse, eşleştirme yap
       if (selectedLeft.value !== null && selectedRight.value !== null) {
         // Eşleştirmeyi kaydet
-        matches.value.push({
+        const newMatch = {
           leftIndex: selectedLeft.value,
           rightIndex: selectedRight.value,
           leftId: leftItems.value[selectedLeft.value].id,
           rightId: rightItems.value[selectedRight.value].id
-        });
+        };
+        
+        matches.value.push(newMatch);
+        
+        // Kompozisyona bildir
+        matchExercise.matchItems(
+          { id: newMatch.leftId }, 
+          { id: newMatch.rightId }
+        );
         
         // Seçimleri sıfırla
         selectedLeft.value = null;
@@ -159,102 +221,69 @@ export default {
     
     // SVG çizgisi için Y pozisyonu hesapla
     const getPositionY = (side, index) => {
-      // Bu değerler CSS'e göre ayarlanmalıdır
-      // Gerçek uygulamada DOM ölçümleri kullanılabilir
       const itemHeight = 60; // px
       const itemMargin = 10; // px
       return (index * (itemHeight + itemMargin)) + (itemHeight / 2);
     };
     
-    // Kullanıcı eşleştirmelerini doğru eşleştirmelerle karşılaştır
-    const getUserMatchesAsValidatedPairs = () => {
-      // Kullanıcı eşleştirmelerini pairs formatında oluştur
-      return matches.value.map(match => {
-        return {
-          id: leftItems.value[match.leftIndex].id,
-          matchId: rightItems.value[match.rightIndex].id
-        };
-      });
+    // Doğru eşleştirmeleri formatla
+    const formatCorrectPairs = () => {
+      return correctMatches.value.map(match => ({
+        id: match.leftId,
+        matchId: match.rightId
+      }));
     };
-    
-    // Doğru eşleştirmeleri pairs formatında oluştur
-    const getCorrectPairs = () => {
-      return correctMatches.map(match => {
-        return {
-          id: match.leftId,
-          matchId: match.rightId
-        };
-      });
-    };
-    
-    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
-    function checkAnswer() {
-      // Tüm eşleştirmeler yapılmadıysa, işlem yapma
-      if (!isComplete.value) {
-        return null;
-      }
-      
-      // exerciseManager'a gerekli parametreleri gönder
-      return exerciseManager.checkAnswer({
-        selectedPairs: getUserMatchesAsValidatedPairs(),
-        correctPairs: getCorrectPairs()
-      });
-    }
-    
-    // Durum sıfırlama
-    function resetState() {
-      selectedLeft.value = null;
-      selectedRight.value = null;
-      matches.value = [];
-      exerciseManager.reset();
-    }
-    
-    // Bir sonraki egzersize geç
-    function onContinue() {
-      // Önce kendimizi sıfırlayalım
-      resetState();
-      
-      // Sonra bir sonraki adıma geçelim
-      if (window.mainLayout && window.mainLayout.nextExercise) {
-        window.mainLayout.nextExercise();
-      }
-    }
     
     // Initialize
     onMounted(() => {
-      resetState();
+      // Adım verisini yükle
+      loadCurrentStepData();
       
-      // Make this component accessible globally
+      // Kompozisyonu sıfırla
+      matchExercise.reset();
+      
+      // Global erişim için
       window.activeExerciseComponent = {
-        checkAnswer,
-        onContinue,
-        renderResultContent: exerciseManager.renderResultContent
+        checkAnswer: matchExercise.checkAnswer,
+        onContinue: () => {
+          // Bileşen durumunu sıfırla
+          selectedLeft.value = null;
+          selectedRight.value = null;
+          matches.value = [];
+          
+          // Kompozisyonu sıfırla
+          matchExercise.reset();
+          
+          // Sonraki egzersize geç
+          if (window.mainLayout?.nextExercise) {
+            window.mainLayout.nextExercise();
+          }
+        },
+        renderResultContent: matchExercise.renderResultContent
       };
     });
     
-    // Watch for changes to activate check button
-    watch(matches, (newVal) => {
-      if (window.mainLayout) {
-        window.mainLayout.canCheck.value = isComplete.value;
-      }
-    });
+    // Adım değiştiğinde veriyi güncelle
+    const stepStore = window.useStepStore();
+    if (stepStore) {
+      watch(() => stepStore.currentStepId.value, () => {
+        loadCurrentStepData();
+        matchExercise.reset();
+      });
+    }
     
     return {
       title,
       audioWord,
       leftItems,
       rightItems,
+      matches,
       selectedLeft,
       selectedRight,
-      matches,
       isComplete,
       isItemMatched,
       selectItem,
-      getPositionY,
-      
-      // useExercise'dan gelen değerleri yayınla
-      isCorrect: exerciseManager.isCorrect,
-      showResult: exerciseManager.showResult
+      getPositionY
     };
   }
 }
@@ -263,53 +292,61 @@ export default {
 <style scoped>
 .matching-exercise {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.audio-container {
+  margin-bottom: 20px;
+}
+
+.audio-button {
+  cursor: pointer;
+  display: inline-block;
 }
 
 .match-grid-container {
   display: flex;
-  width: 100%;
   justify-content: space-between;
   position: relative;
-  min-height: 350px;
+  z-index: 10;
 }
 
-.left-column, .right-column {
+.left-column,
+.right-column {
+  width: 45%;
   display: flex;
   flex-direction: column;
-  width: 45%;
   gap: 10px;
 }
 
 .match-item {
-  background-color: #2a2a2a;
+  background-color: rgba(255, 255, 255, 0.1);
   color: white;
-  border-radius: 8px;
   padding: 15px;
-  text-align: center;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 2px solid transparent;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  font-size: 1.1rem;
+  user-select: none;
 }
 
-.match-item:hover:not(.matched) {
-  background-color: #3a3a3a;
+.match-item:hover {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .match-item.selected {
-  border-color: #58a700;
-  box-shadow: 0 0 0 2px rgba(88, 167, 0, 0.5);
+  background-color: #007bff;
+  border-color: #0056b3;
 }
 
 .match-item.matched {
-  background-color: #1f4b00;
-  border-color: #58a700;
+  background-color: #28a745;
   cursor: default;
 }
 
@@ -319,37 +356,18 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 5;
   pointer-events: none;
-  z-index: -1;
+}
+
+.match-lines-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .match-line {
-  stroke: #58a700;
+  stroke: rgba(255, 255, 255, 0.7);
   stroke-width: 2;
-  stroke-dasharray: 5;
-  animation: dash 1s linear infinite;
-}
-
-@keyframes dash {
-  to {
-    stroke-dashoffset: -10;
-  }
-}
-
-/* Responsive düzenlemeler */
-@media (max-width: 576px) {
-  .match-grid-container {
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-  
-  .left-column, .right-column {
-    width: 100%;
-  }
-  
-  .match-lines {
-    display: none; /* Mobilde çizgileri gizle */
-  }
 }
 </style>

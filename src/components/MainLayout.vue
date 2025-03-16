@@ -8,7 +8,11 @@
       <div class="container py-4">
         <div class="row justify-content-center">
           <div class="col-lg-8">
-            <component :is="activeComponent" class="exercise" />
+            <component 
+              :is="activeComponent" 
+              class="exercise" 
+              :exercise-data="currentExerciseData"
+            />
           </div>
         </div>
       </div>
@@ -69,6 +73,7 @@ export default {
     const progress = ref(0);
     const hearts = ref(5);
     const title = ref('');
+    const currentExerciseData = ref(null);
 
     // Current step tracking
     const currentStepIndex = ref(0);
@@ -90,18 +95,101 @@ export default {
       }
       return 'KONTROL ET';
     });
+    
+    // MainLayout'u global olarak erişilebilir kıl
+    const exposeMainLayout = () => {
+      // window.mainLayout nesnesini oluştur
+      window.mainLayout = {
+        canCheck: canCheck.value,
+        setCanCheck: (value) => {
+          canCheck.value = value;
+        },
+        nextExercise,
+        checkAnswer,
+        continueAction
+      };
+      
+      // canCheck özelliğini reactive yapmak için getter/setter kullan
+      Object.defineProperty(window.mainLayout, 'canCheck', {
+        get: () => canCheck.value,
+        set: (value) => {
+          canCheck.value = value;
+        }
+      });
+    };
+
+    // URL'den adım parametresini al
+    const getStepFromUrl = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stepParam = urlParams.get('step');
+      return stepParam ? parseInt(stepParam, 10) : 1;
+    };
+
+    // URL'deki değişiklikleri izle
+    const handleUrlChange = () => {
+      const stepId = getStepFromUrl();
+      if (stepStore && stepId) {
+        stepStore.setStep(stepId);
+        loadExerciseDataAndComponent(stepId);
+      }
+    };
+
+    // Step ID'ye göre egzersiz verisini yükle ve bileşeni ayarla
+    const loadExerciseDataAndComponent = (stepId) => {
+      if (!window.exerciseStepsManager) {
+        console.error('Exercise Steps Manager is not available');
+        return;
+      }
+      
+      // Step ID'ye göre egzersiz verisini al
+      const stepData = window.exerciseStepsManager.getStepById(stepId);
+      
+      if (stepData) {
+        // Egzersiz verisini ayarla
+        currentExerciseData.value = stepData;
+        
+        // Egzersiz tipine göre bileşeni belirle
+        const componentMap = {
+          'word-match': 'WordMatchExercise',
+          'word-builder': 'WordBuilderExercise', 
+          'text-input': 'TextInputExercise',
+          'fill-in-blank': 'FillInBlankExercise',
+          'picture-match': 'PictureMatchExercise',
+          'matching': 'MatchingExercise'
+        };
+        
+        const componentName = componentMap[stepData.type] || 'WordMatchExercise';
+        setActiveExercise(componentName);
+        
+        console.log(`Loaded exercise data for step ${stepId}:`, stepData);
+        console.log(`Set active component to: ${componentName}`);
+      } else {
+        console.warn(`No exercise data found for step ID: ${stepId}`);
+        // Varsayılan bileşen
+        setActiveExercise('WordMatchExercise');
+      }
+    };
 
     // Initialize
     onMounted(() => {
-      // Başlangıç egzersiz bileşenini ayarla
-      // Bu örnekte varsayılan olarak WordMatchExercise gösteriliyor
-      setActiveExercise('WordMatchExercise');
+      // MainLayout'u global olarak erişilebilir yapın
+      exposeMainLayout();
+      
+      // URL'deki adım parametresini kontrol et
+      const urlStep = getStepFromUrl();
       
       // Step store durumunu ayarla
-      const stepStore = window.useStepStore();
       if (stepStore) {
-        // İlk adımı ayarla
-        stepStore.setStep(1);
+        // Başlangıç adımını ayarla
+        if (urlStep) {
+          stepStore.setStep(urlStep);
+        } else {
+          // URL'de bir adım parametresi yoksa, 1. adımı ayarla ve URL'yi güncelle
+          stepStore.setStep(1);
+        }
+        
+        // Egzersiz verisini yükle ve bileşeni ayarla
+        loadExerciseDataAndComponent(stepStore.currentStepId.value);
         
         // Progress ve can durumunu ayarla
         progress.value = stepStore.currentProgress.value;
@@ -115,7 +203,17 @@ export default {
         watch(() => stepStore.hearts.value, (newValue) => {
           hearts.value = newValue;
         });
+        
+        // Geçerli adım değiştiğinde veriyi ve bileşeni güncelle
+        watch(() => stepStore.currentStepId.value, (newStepId) => {
+          loadExerciseDataAndComponent(newStepId);
+        });
       }
+      
+      // URL değişikliklerini izle
+      window.addEventListener('popstate', handleUrlChange);
+      
+      console.log("MainLayout mounted - window.mainLayout is now available");
     });
 
     // Methods
@@ -128,23 +226,10 @@ export default {
 
     const nextExercise = () => {
       // Step store durumunu güncelle
-      const stepStore = window.useStepStore();
       if (stepStore) {
         stepStore.nextStep();
+        // Yeni step verisini yükle - watch değişikliği otomatik olarak çağıracak
       }
-      
-      // Sıradaki egzersiz bileşenini yükle
-      currentStepIndex.value++;
-      
-      // Basit bir sıralama kullanarak egzersizleri döndür
-      const exerciseComponents = [
-        'WordMatchExercise',
-        'PictureMatchExercise',
-        'FillInBlankExercise'
-      ];
-      
-      const nextIndex = currentStepIndex.value % exerciseComponents.length;
-      setActiveExercise(exerciseComponents[nextIndex]);
     };
     
     const checkAnswer = () => {
@@ -152,267 +237,145 @@ export default {
         return;
       }
 
-      // Call check method on active exercise component
       if (window.activeExerciseComponent && typeof window.activeExerciseComponent.checkAnswer === 'function') {
         const result = window.activeExerciseComponent.checkAnswer();
+        isCorrect.value = result.isCorrect;
+        showResult.value = true;
+        correctAnswer.value = result.correctAnswer;
         
-        // Eğer bir sonuç döndüyse, sonucu göster
-        if (result) {
-          showResult.value = true;
-          isCorrect.value = result.isCorrect;
-          correctAnswer.value = result.correctAnswer || '';
-          
-          // Yanlış cevap verdiyse canı azalt ve modalı göster
-          if (!result.isCorrect) {
-            const stepStore = window.useStepStore();
-            if (stepStore) {
-              stepStore.decreaseHearts();
-              hearts.value = stepStore.hearts.value;
-              showModal.value = true;
-            }
+        // Doğru değilse yürek azalt
+        if (!isCorrect.value) {
+          if (stepStore) {
+            stepStore.decreaseHeart();
+            showModal.value = true;
           }
         }
       }
     };
-
-    const handleFooterButton = () => {
+    
+    const continueAction = () => {
       if (showResult.value) {
-        // DEVAM ET butonuna tıklandı - bir sonraki adıma geç
-        nextExercise();
-        
-        // Sonucu sıfırla
-        setTimeout(() => {
-          resetFooter();
-        }, 100);
+        if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
+          window.activeExerciseComponent.onContinue();
+        }
+        resetFooter();
       } else {
-        // KONTROL ET butonuna tıklandı - sadece cevabı kontrol et
         checkAnswer();
       }
     };
-
-    const updateExerciseContent = () => {
-      if (window.activeExerciseComponent && window.activeExerciseComponent.renderResultContent) {
-        activeExerciseContent.value = window.activeExerciseComponent.renderResultContent();
-      } else {
-        activeExerciseContent.value = null;
-      }
+    
+    const resetFooter = () => {
+      canCheck.value = false;
+      showResult.value = false;
+      isCorrect.value = false;
+      correctAnswer.value = '';
+      activeExerciseContent.value = null;
     };
-
+    
     const closeModal = () => {
       showModal.value = false;
     };
-
-    const resetFooter = () => {
-      showResult.value = false;
-      showModal.value = false;
-      isCorrect.value = false;
-      canCheck.value = false;
-      correctAnswer.value = '';
-      activeExerciseContent.value = null; // İçeriği de sıfırla
-    };
-
-    // Make methods accessible for global access
-    onMounted(() => {
-      window.mainLayout = {
-        showResult,
-        isCorrect,
-        canCheck,
-        correctAnswer,
-        checkAnswer,
-        nextExercise,
-        closeModal,
-        setActiveExercise,
-        resetFooter
-      };
-      
-      // Global store'a referans ekle
-      window.store = window.store || {};
-      window.store.updateLayoutState = () => {
-        const stepStore = window.useStepStore();
-        if (stepStore) {
-          progress.value = stepStore.currentProgress.value;
-          hearts.value = stepStore.hearts.value;
-        }
-      };
-    });
-
+    
     return {
-      // State
       activeComponent,
-      title,
-      currentStepIndex,
+      canCheck,
       showResult,
-      showModal,
       isCorrect,
       correctAnswer,
-      canCheck,
-      
-      // Computed
-      buttonText,
+      showModal,
+      hearts,
+      progress,
       footerStateClass,
-      activeExerciseHasCustomContent,
-      activeExerciseContent,
+      buttonText,
+      title,
+      currentExerciseData,
       
       // Methods
-      handleFooterButton,
+      checkAnswer,
+      continueAction,
       closeModal,
-      
-      // Referanslar
-      activeExercise,
-      
-      // UI güncellemeleri
-      progress,
-      hearts
+      nextExercise
     };
   }
-}
+};
 </script>
 
-<style scoped>
+<style>
 .layout {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 20px 0;
+  background-color: #1cb0f6;
 }
 
 .layout-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  position: relative;
 }
 
-.footer {
-  padding: 1rem;
-  margin-top: auto;
-  background-color: #222;
-  border-top: 1px solid #333;
-  transition: all 0.3s ease;
+/* Animation for Exercise Components */
+.exercise {
+  animation: fade-in 0.3s ease-in-out;
 }
 
-.footer.correct-state {
-  background-color: rgba(25, 135, 84, 0.15);
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.footer.incorrect-state {
-  background-color: rgba(220, 53, 69, 0.15);
-}
-
-.footer-status {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  border-radius: 8px;
-  background-color: #333;
-}
-
-.correct-answer {
-  color: #28a745;
-}
-
-.incorrect-answer {
-  color: #dc3545;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 2rem;
-}
-
-.continue-btn {
-  letter-spacing: 1px;
-  font-weight: 700;
-}
-
-.exercise-container {
-  padding: 1rem 0;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.exercise-title {
-  margin-top: 0.5rem;
-  margin-bottom: 2rem;
-}
-
-.exercise-content {
-  padding: 0;
-}
-
+/* Modal Styles */
 .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
   display: flex;
-  justify-content: center;
   align-items: center;
-}
-
-.modal-backdrop.correct {
-  background-color: rgba(25, 135, 84, 0.5);
-}
-
-.modal-backdrop.incorrect {
-  background-color: rgba(220, 53, 69, 0.5);
+  justify-content: center;
 }
 
 .modal-content {
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  width: 500px;
-  max-width: 90%;
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: modal-pop 0.3s forwards;
 }
 
 .modal-header {
-  margin-bottom: 1rem;
-}
-
-.modal-title {
-  font-size: 1.5rem;
-  font-weight: bold;
+  padding: 1.5rem;
+  background-color: #ff4b4b;
+  color: white;
+  text-align: center;
 }
 
 .modal-body {
-  margin-bottom: 1rem;
-}
-
-.correct-answer {
-  margin-bottom: 1rem;
-}
-
-.answer-label {
-  font-weight: bold;
-}
-
-.answer-text {
-  font-size: 1.2rem;
-}
-
-.exercise-feedback {
-  font-size: 1.2rem;
+  padding: 2rem;
+  text-align: center;
 }
 
 .modal-footer {
-  margin-top: 1rem;
-}
-
-.btn-lg {
-  padding: 0.5rem 1rem;
-  font-size: 1.2rem;
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid #eee;
 }
 
 .hearts-notification {
-  margin-bottom: 1rem;
   font-size: 1.2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes modal-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

@@ -2,6 +2,20 @@
 (function() {
   const { ref, computed, reactive, readonly } = Vue;
 
+  // URL'den adım parametresini al
+  function getStepFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const stepParam = urlParams.get('step');
+    return stepParam ? parseInt(stepParam, 10) : 1;
+  }
+
+  // URL'deki adım parametresini güncelle
+  function updateUrlStep(stepId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('step', stepId);
+    window.history.replaceState({}, '', url);
+  }
+
   // Global olarak erişilebilir StepStore fonksiyonu
   window.useStepStore = function() {
     // Egzersiz türlerini merkezileştirilmiş exerciseTypes dizisinden al
@@ -27,8 +41,11 @@
       }));
     });
 
+    // URL'den başlangıç adımını al
+    const initialStepId = getStepFromUrl();
+
     // Durum değişkenleri
-    const currentStepId = ref(1);
+    const currentStepId = ref(initialStepId);
     const hearts = ref(5);
     const score = ref(0);
     
@@ -48,6 +65,8 @@
     function setStep(stepId) {
       if (stepId >= 1 && stepId <= totalSteps.value) {
         currentStepId.value = stepId;
+        // URL'yi güncelle
+        updateUrlStep(stepId);
       }
     }
 
@@ -58,12 +77,16 @@
         // Tüm adımlar tamamlandığında başa dön
         currentStepId.value = 1;
       }
+      // URL'yi güncelle
+      updateUrlStep(currentStepId.value);
       return currentStep.value;
     }
 
     function previousStep() {
       if (currentStepId.value > 1) {
         currentStepId.value--;
+        // URL'yi güncelle
+        updateUrlStep(currentStepId.value);
       }
       return currentStep.value;
     }
@@ -74,6 +97,8 @@
         activeSequence.value = sequenceName;
         // İlk adıma geri dön
         currentStepId.value = 1;
+        // URL'yi güncelle
+        updateUrlStep(1);
         return true;
       }
       return false;
@@ -118,6 +143,14 @@
     function getActiveSequence() {
       return activeSequence.value;
     }
+
+    // URL değişikliklerini izle
+    window.addEventListener('popstate', () => {
+      const newStepId = getStepFromUrl();
+      if (newStepId !== currentStepId.value) {
+        setStep(newStepId);
+      }
+    });
 
     // Store API'sını döndür
     return {

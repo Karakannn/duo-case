@@ -1,30 +1,22 @@
 <template>
   <div class="exercise-component">
-    <div class="translation-container mb-4">
-      <div class="character-section d-flex align-items-center justify-content-start mb-2">
-        <div class="character-image">
-          <img :src="characterImage" alt="Character" class="img-fluid" style="height: 80px;">
-        </div>
-        <div class="speech-bubble ms-3 badge bg-secondary rounded-pill fs-5 px-3 py-2">
-          <i class="fas fa-volume-up me-2"></i>
-          {{ phraseToTranslate }}
-        </div>
+    <div class="prompt-container mb-4">
+      <div class="character-image me-3">
+        <img src="/src/assets/images/character.svg" alt="Character" class="img-fluid" style="height: 100px;">
       </div>
-      
-      <div class="input-section mt-4">
-        <div class="form-floating">
-          <input 
-            type="text" 
-            class="form-control bg-dark text-white border-secondary" 
-            id="translation-input"
-            placeholder="Type your answer"
-            v-model="userInput"
-            :disabled="showResult"
-            @keyup.enter="handleSubmit()"
-          >
-          <label for="translation-input" class="text-white-50">Type your answer</label>
-        </div>
+      <div class="prompt-badge bg-light p-3 rounded-3 shadow-sm">
+        {{ prompt }}
       </div>
+    </div>
+    
+    <div class="input-container">
+      <textarea 
+        v-model="userInput"
+        class="form-control mb-3"
+        rows="3"
+        :placeholder="placeholder"
+        @input="onInputChange"
+      ></textarea>
     </div>
   </div>
 </template>
@@ -32,122 +24,132 @@
 <script>
 export default {
   name: 'TextInputExercise',
-  components: {
+  props: {
+    exerciseData: {
+      type: Object,
+      default: () => ({})
+    }
   },
-  emits: ['complete'],
-  setup(props, { emit }) {
-    const { ref, onMounted, watch } = Vue;
+  setup(props) {
+    const { ref, onMounted, watchEffect } = Vue;
     
-    // Merkezi store ve exercise manager'ı kullan
-    const stepStore = window.useStepStore();
-    const exerciseManager = window.useExercise({
-      exerciseName: 'text-input'
+    // Ortak egzersiz composable'ını kullan
+    const exercise = window.useExercise(props, {
+      exerciseType: 'text-input',
+      defaultData: {
+        prompt: 'Çevir: "The cat is black"',
+        correctAnswer: 'Kedi siyahtır'
+      }
     });
     
-    // State
-    const title = "Çevirin";
-    const characterImage = "/src/assets/images/character.svg";
-    const phraseToTranslate = "coffee";
-    const correctAnswer = "kahve";
-    const userInput = ref("");
+    // Bileşene özel state
+    const prompt = ref('');
+    const correctAnswer = ref('');
+    const userInput = ref('');
+    const placeholder = ref('Cevabınızı buraya yazın...');
     
-    // Handle submit (check answer) - Enter tuşuyla kontrol
-    const handleSubmit = () => {
-      if (window.mainLayout && window.mainLayout.handleFooterButton) {
-        window.mainLayout.handleFooterButton(); 
+    // Egzersiz verilerini yükle
+    const loadExerciseData = () => {
+      if (exercise.exerciseData.value.question) {
+        const questionData = exercise.exerciseData.value.question;
+        
+        prompt.value = questionData.prompt || '';
+        correctAnswer.value = questionData.correctAnswer || '';
+        
+        // Kullanıcı girdisini sıfırla
+        userInput.value = '';
       }
     };
     
-    // Cevap kontrolü - merkezi doğrulama mekanizmasını kullan
-    function checkAnswer() {
-      if (!userInput.value) {
-        return null;
-      }
+    // Girdi değişikliklerini işle
+    const onInputChange = () => {
+      exercise.updateCheckButton(userInput.value.trim().length > 0);
+    };
+    
+    // Cevabı kontrol et
+    const checkAnswer = () => {
+      // Karşılaştırma için cevapları normalleştir (küçük harf, boşluk temizleme)
+      const normalizedUserAnswer = userInput.value.trim().toLowerCase();
+      const normalizedCorrectAnswer = correctAnswer.value.trim().toLowerCase();
       
-      // exerciseManager'a gerekli parametreleri gönder
-      return exerciseManager.checkAnswer({
-        userInput: userInput.value,
-        correctText: correctAnswer,
-        allowPartialMatch: false
-      });
-    }
-    
-    // Durum sıfırlama
-    function resetState() {
-      userInput.value = "";
-      exerciseManager.reset();
-    }
-    
-    // Bir sonraki egzersize geç
-    function onContinue() {
-      // Önce kendimizi sıfırlayalım
-      resetState();
+      // Eşleşme kontrolü
+      const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
       
-      // Sonra bir sonraki adıma geçelim
-      if (window.mainLayout && window.mainLayout.nextExercise) {
-        window.mainLayout.nextExercise();
-      }
-    }
+      const result = {
+        isCorrect,
+        userAnswer: userInput.value,
+        correctAnswer: correctAnswer.value
+      };
+      
+      return exercise.checkAnswer(result);
+    };
     
-    // Initialize
+    // Sonuç içeriğini oluştur
+    const renderResultContent = (isCorrect) => {
+      return exercise.renderResultContent(isCorrect, correctAnswer.value);
+    };
+    
+    // Bileşen yüklendiğinde
     onMounted(() => {
-      resetState();
+      // Verileri yükle
+      exercise.loadExerciseDataFromProps();
+      loadExerciseData();
       
-      // Make this component accessible globally
+      // Global API'yi ayarla
       window.activeExerciseComponent = {
         checkAnswer,
-        onContinue,
-        renderResultContent: exerciseManager.renderResultContent
+        onContinue: exercise.onContinue,
+        renderResultContent
       };
     });
     
-    // Update check button when input changes
-    watch(userInput, val => { 
-      if (window.mainLayout) {
-        window.mainLayout.canCheck.value = !!val;
+    // Props değişimini izle
+    watchEffect(() => {
+      if (props.exerciseData) {
+        loadExerciseData();
       }
     });
     
     return {
-      title,
-      characterImage,
-      phraseToTranslate,
-      correctAnswer,
+      prompt,
       userInput,
-      handleSubmit,
-      
-      // useExercise'dan gelen değerleri yayınla
-      showResult: exerciseManager.showResult
+      placeholder,
+      onInputChange
     };
   }
 }
 </script>
 
 <style scoped>
-.translation-container {
-  margin-bottom: 20px;
+.prompt-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
 
-.character-image {
-  width: 80px;
-  height: 80px;
+.prompt-badge {
+  color: #333;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  max-width: 500px;
 }
 
-.speech-bubble {
-  position: relative;
-  background: #444444;
+.input-container {
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.input-section {
-  margin-top: 20px;
+textarea.form-control {
+  font-size: 1.1rem;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  transition: all 0.3s ease;
 }
 
-.form-floating input {
-  height: 60px;
-  font-size: 1.2rem;
-}
-
-.form-floating label {
-  font-size: 1rem;
+textarea.form-control:focus {
+  border-color: #58cc02;
+  box-shadow: 0 0 0 0.2rem rgba(88, 204, 2, 0.25);
 }
 </style>
