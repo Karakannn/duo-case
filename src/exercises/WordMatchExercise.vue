@@ -1,17 +1,23 @@
 <template>
   <div class="exercise-component">
-    <div class="word-container mb-4">
-      <div class="word-display p-3 bg-light rounded-3 shadow-sm text-center">
-        <h2>{{ word }}</h2>
+    <h1 class="title">Doğru anlamı seç</h1>
+    
+    <div class="word-container">
+      <div class="word-bubble">
+        <div class="word-text">{{ word }}</div>
       </div>
     </div>
 
     <div class="options-container">
       <div class="options-list">
-        <Button v-for="(option, index) in options" :key="index" variant="primaryOutline"
-          :class="selectedOption === option ? 'selected' : ''" @click="selectOption(option)">
-          {{ option }}
-        </Button>
+        <OptionButton 
+          v-for="(option, index) in options" 
+          :key="index" 
+          :number="index + 1"
+          :text="option"
+          :isSelected="selectedOption === option"
+          @select="selectOption(option)"
+        />
       </div>
     </div>
   </div>
@@ -20,7 +26,7 @@
 <script>
 export default {
   components: {
-    Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions))
+    OptionButton: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/exercises/OptionButton.vue", window.sfcOptions))
   },
   props: {
     exerciseData: {
@@ -62,77 +68,67 @@ export default {
 
 <style scoped>
 .exercise-component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   min-height: 450px;
+  padding: 20px;
+  color: white;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  text-align: center;
 }
 
 .word-container {
-  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+  width: 100%;
 }
 
-.word-display {
-  color: #333;
-  margin: 0 auto;
-  max-width: 500px;
+.word-bubble {
+  position: relative;
+  background-color: var(--color-ui-700);
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: inline-block;
 }
 
-.word-display h2 {
-  font-size: 2rem;
-  margin: 0;
+.word-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid var(--color-ui-700);
+}
+
+.word-text {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .options-container {
-  display: grid;
-  font-size: 19px;
-  height: 100%;
-  justify-content: center;
-  text-align: center;
   width: 100%;
-  margin: 0 auto;
-  grid-template-columns: 1fr;
-  grid-template-rows: minmax(0, 1fr);
+  max-width: 600px;
 }
 
 .options-list {
-  display: grid;
-  grid-gap: 16px;
-  grid-template-rows: min-content minmax(0, 1fr);
-}
-
-.options-list button {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  padding: 1rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  font-size: 1.1rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  background-color: white;
-  transition: all 0.2s ease;
 }
-
-.options-list button:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  transform: translateY(-2px);
-}
-
-.options-list button.selected {
-  background-color: #58cc02;
-  color: white;
-  border-color: #58cc02;
-}
-
 
 @media (min-width: 700px) {
   .options-container {
-    grid-template-columns: min-content;
-    grid-template-rows: min-content;
-  }
-
-  .options-list {
-    min-height: 450px;
-    overflow: visible;
     width: 600px;
-
   }
 }
 </style>

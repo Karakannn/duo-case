@@ -21,24 +21,37 @@
       </div>
 
       <div class="options-grid">
-        <PictureMatchCard v-for="(option, index) in options" :key="index" :option="option"
-          :isSelected="selectedOption === option.name" @select="selectOption" :index="index + 1" />
+        <selection-card 
+          v-for="(option, index) in options" 
+          :key="index"
+          :is-selected="selectedOption === option.name" 
+          :is-correct="isAnswerChecked && option.name === correctOptionName"
+          :is-disabled="isAnswerChecked"
+          @select="handleOptionSelect(option)">
+          <div class="card-image-container">
+            <div class="card-image" :style="{ backgroundImage: `url(${option.imageUrl})` }"></div>
+          </div>
+          <div class="card-text-container">
+            <span class="card-text" style="color: var(--color-hare)">{{ option.name }}</span>
+            <span class="card-text-index">{{ index + 1 }}</span>
+          </div>
+        </selection-card>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-// Kart bileşenini import et
-const PictureMatchCard = window["vue3-sfc-loader"].loadModule(
-  './src/components/exercises/PictureMatchCard.vue',
+// Import the selection card component
+const SelectionCard = window["vue3-sfc-loader"].loadModule(
+  './src/components/common/SelectionCard.vue',
   window.sfcOptions
 );
 
 export default {
   name: 'PictureMatchExercise',
   components: {
-    PictureMatchCard: Vue.defineAsyncComponent(() => PictureMatchCard)
+    SelectionCard: Vue.defineAsyncComponent(() => SelectionCard)
   },
   props: {
     exerciseData: {
@@ -51,19 +64,56 @@ export default {
 
     // PictureMatch composable'ını kullan
     const pictureMatch = window.usePictureMatch(props);
-
+    
     // State
     const title = ref("Görsele uygun kelimeyi seçin");
     const questionImageUrl = ref("");
+    const isAnswerChecked = ref(false);
+    const correctOptionName = ref("");
+
+    // Prevent selection when answer is checked
+    const handleOptionSelect = (option) => {
+      if (!isAnswerChecked.value) {
+        pictureMatch.selectOption(option);
+      }
+    };
 
     // Init
     onMounted(() => {
       pictureMatch.init();
 
-      // Global API
+      // Try to get the correct option directly from the loaded pictureMatch data
+      const exercise = window.currentExercise;
+      if (exercise && exercise.correctOption) {
+        correctOptionName.value = exercise.correctOption;
+      }
+
+      // Global API'yi ayarla ve cevap kontrolünü yönet
       window.activeExerciseComponent = {
-        checkAnswer: pictureMatch.checkAnswer,
-        onContinue: pictureMatch.onContinue,
+        checkAnswer: () => {
+          const result = pictureMatch.checkAnswer();
+          
+          // Store the correct option name from the result
+          if (result && result.correctAnswer) {
+            correctOptionName.value = result.correctAnswer;
+          }
+          
+          // Mark answer as checked
+          isAnswerChecked.value = true;
+          
+          return result;
+        },
+        onContinue: () => {
+          isAnswerChecked.value = false;
+          pictureMatch.onContinue();
+          
+          // Update correctOptionName for the new exercise
+          setTimeout(() => {
+            if (window.currentExercise && window.currentExercise.correctOption) {
+              correctOptionName.value = window.currentExercise.correctOption;
+            }
+          }, 100);
+        },
         renderResultContent: pictureMatch.renderResultContent
       };
 
@@ -76,7 +126,9 @@ export default {
       questionImageUrl,
       options: pictureMatch.options,
       selectedOption: pictureMatch.selectedOption,
-      selectOption: pictureMatch.selectOption
+      handleOptionSelect,
+      isAnswerChecked,
+      correctOptionName
     };
   }
 }
@@ -90,7 +142,6 @@ export default {
   justify-content: center;
   text-align: center;
   width: 100%;
-
 }
 
 .exercise-component {
@@ -116,6 +167,7 @@ export default {
 .title-container h5 {
   font-size: 32px;
   font-weight: 700;
+  color: var(--color-hare);
 }
 
 .question-image-container {
@@ -137,6 +189,54 @@ export default {
   grid-gap: 8px;
   align-items: center;
   grid-template-columns: repeat(2, 1fr);
+}
+
+/* Styles needed for the card content */
+.card-image-container {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+}
+
+.card-image {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
+  height: 160px;
+  background-position: 50%;
+  background-repeat: no-repeat;
+  background-size: contain;
+  margin: 0 0 10px;
+  border-radius: 8px;
+}
+
+.card-text-container {
+  width: 100%;
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.card-text {
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.card-text-index {
+  display: inline-flex;
+  align-items: center;
+  border: 3px solid var(--color-swan);
+  border-radius: 8px;
+  color: var(--color-hare);
+  font-size: 15px;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+  flex-shrink: 0;
+  font-weight: 900;
 }
 
 @media (min-width: 700px) {

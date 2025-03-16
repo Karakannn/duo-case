@@ -101,6 +101,10 @@
   
   --internal-background-color-danger: rgb(238, 85, 85);
   --internal-color-danger: rgb(19, 31, 36);
+
+  --internal-background-color-success: rgb(32, 47, 54);
+  --internal-border-success: rgb(95, 132, 40);
+  --internal-color-success: rgb(121, 185, 51);
 }
 
 /* Dark Theme */
