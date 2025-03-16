@@ -121,7 +121,7 @@
     const app = Vue.createApp({
       template: '<MainLayout />',
       components: {
-        MainLayout: Vue.defineAsyncComponent(() => 
+        MainLayout: Vue.defineAsyncComponent(() =>
           window["vue3-sfc-loader"].loadModule("./src/components/MainLayout.vue", window.sfcOptions)
         )
       },

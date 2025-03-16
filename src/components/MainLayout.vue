@@ -5,34 +5,15 @@
 
     <!-- Main Content Area -->
     <div class="layout-content">
-      <div class="container py-4">
-        <div class="row justify-content-center">
-          <div class="col-lg-8">
-            <component 
-              :is="activeComponent" 
-              class="exercise" 
-              :exercise-data="currentExerciseData"
-            />
-          </div>
-        </div>
-      </div>
+      <component :is="activeComponent" class="exercise" :exercise-data="currentExerciseData" />
     </div>
 
     <!-- Footer -->
-    <Footer 
-      :showResult="showResult" 
-      :isCorrect="isCorrect" 
-      :canCheck="canCheck" 
-      :correctAnswer="correctAnswer" 
-      :correctStreak="correctStreak"
-    />
+    <Footer :showResult="showResult" :isCorrect="isCorrect" :canCheck="canCheck" :correctAnswer="correctAnswer"
+      :correctStreak="correctStreak" />
 
     <!-- Result Modal - Only for incorrect answers -->
-    <div 
-      v-if="showModal" 
-      class="modal-backdrop incorrect" 
-      @click="closeModal"
-    >
+    <div v-if="showModal" class="modal-backdrop incorrect" @click="closeModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h2 class="modal-title">Yanlış!</h2>
@@ -65,11 +46,11 @@ export default {
     // State
     const activeComponent = ref(null);
     const activeExercise = ref(null);
-    const canCheck = ref(false);
-    const showResult = ref(false);
+    const canCheck = ref(true);
+    const showResult = ref(true);
     const showModal = ref(false);
-    const isCorrect = ref(false);
-    const correctAnswer = ref('');
+    const isCorrect = ref(true);
+    const correctAnswer = ref('coffee');
     const activeExerciseContent = ref(null);
     const progress = ref(0);
     const hearts = ref(5);
@@ -97,7 +78,7 @@ export default {
       }
       return 'KONTROL ET';
     });
-    
+
     // MainLayout'u global olarak erişilebilir kıl
     const exposeMainLayout = () => {
       // window.mainLayout nesnesini oluştur
@@ -110,7 +91,7 @@ export default {
         checkAnswer,
         continueAction
       };
-      
+
       // canCheck özelliğini reactive yapmak için getter/setter kullan
       Object.defineProperty(window.mainLayout, 'canCheck', {
         get: () => canCheck.value,
@@ -131,27 +112,27 @@ export default {
         console.error('Exercise Steps Manager is not available');
         return;
       }
-      
+
       // Step ID'ye göre egzersiz verisini al
       const stepData = window.exerciseStepsManager.getStepById(stepId);
-      
+
       if (stepData) {
         // Egzersiz verisini ayarla
         currentExerciseData.value = stepData;
-        
+
         // Egzersiz tipine göre bileşeni belirle
         const componentMap = {
           'word-match': 'WordMatchExercise',
-          'word-builder': 'WordBuilderExercise', 
+          'word-builder': 'WordBuilderExercise',
           'text-input': 'TextInputExercise',
           'fill-in-blank': 'FillInBlankExercise',
           'picture-match': 'PictureMatchExercise',
           'matching': 'MatchingExercise'
         };
-        
+
         const componentName = componentMap[stepData.type] || 'WordMatchExercise';
         setActiveExercise(componentName);
-        
+
         console.log(`Loaded exercise data for step ${stepId}:`, stepData);
         console.log(`Set active component to: ${componentName}`);
       } else {
@@ -165,33 +146,33 @@ export default {
     onMounted(() => {
       // MainLayout'u global olarak erişilebilir yapın
       exposeMainLayout();
-      
+
       // Global değişkendeki adım numarasını kontrol et
       const globalStep = getGlobalStep();
-      
+
       // Progress değerini minimal bir değer olarak ayarla (ipucu olarak)
-      progress.value = 0; 
+      progress.value = 0;
       correctStreak.value = 0;
-      
+
       // Step store durumunu ayarla
       if (stepStore) {
         // Başlangıç adımını ayarla
         stepStore.setStep(globalStep);
-        
+
         // Egzersiz verisini yükle ve bileşeni ayarla
         loadExerciseDataAndComponent(stepStore.currentStepId.value);
-        
+
         // Canları ayarla
         hearts.value = stepStore.hearts.value;
-        
+
         // Step store değişikliklerini izle
         watch(() => stepStore.currentStepId.value, (newStepId) => {
           // Step ID değiştiğinde, egzersiz verisini ve bileşeni güncelle
           loadExerciseDataAndComponent(newStepId);
-          
+
           console.log(`Step changed to ${newStepId}`);
         }, { immediate: true });
-        
+
         // Hearts değerini izle
         watch(() => stepStore.hearts.value, (newValue) => {
           hearts.value = newValue;
@@ -202,30 +183,30 @@ export default {
     // Methods
     const setActiveExercise = (componentName) => {
       resetFooter();
-      activeComponent.value = Vue.defineAsyncComponent(() => 
+      activeComponent.value = Vue.defineAsyncComponent(() =>
         window["vue3-sfc-loader"].loadModule(`./src/exercises/${componentName}.vue`, window.sfcOptions)
       );
     };
 
     const nextExercise = () => {
       if (!stepStore) return;
-      
+
       // Bir sonraki adıma geç
       const nextStep = stepStore.nextStep();
-      
-      // Progress değerini güncelle
-      progress.value = stepStore.currentProgress.value;
-      
+
+      // KONTROL ET'e tıklandığında progress güncellendiği için, 
+      // burada progress'i tekrar güncellemeye gerek yok
+
       // Varsa egzersiz verisini ve bileşeni yükle
       if (nextStep) {
         loadExerciseDataAndComponent(stepStore.currentStepId.value);
-        console.log(`Moving to next exercise, step: ${stepStore.currentStepId.value}, progress: ${progress.value}%`);
+        console.log(`Moving to next exercise, step: ${stepStore.currentStepId.value}`);
       }
-      
+
       // UI durumunu sıfırla
       resetFooter();
     };
-    
+
     const checkAnswer = () => {
       if (!canCheck.value) {
         return;
@@ -236,23 +217,24 @@ export default {
         isCorrect.value = result.isCorrect;
         showResult.value = true;
         correctAnswer.value = result.correctAnswer;
-        
+
         // Doğru cevap
         if (isCorrect.value) {
           correctStreak.value++;
           console.log(`Correct! Streak is now: ${correctStreak.value}`);
-          
-          // Streak 2 veya daha fazla ise progress güncellensin
-          if (correctStreak.value >= 2 && stepStore) {
+
+          // Doğru cevap verildiğinde hemen progress'i güncelle
+          if (stepStore) {
+            // Progress değerini güncelle
             progress.value = stepStore.currentProgress.value;
-            console.log(`Streak is ${correctStreak.value}, updating progress to: ${progress.value}%`);
+            console.log(`Correct answer, updating progress to: ${progress.value}%`);
           }
         } else {
           // Yanlış cevap - streak sıfırla ve progress sıfırla
           console.log(`Incorrect answer, resetting streak from ${correctStreak.value} to 0`);
           correctStreak.value = 0;
           progress.value = 0;
-          
+
           if (stepStore) {
             stepStore.decreaseHeart();
             showModal.value = true;
@@ -260,7 +242,7 @@ export default {
         }
       }
     };
-    
+
     const continueAction = () => {
       if (showResult.value) {
         // Doğru cevap verdiyse (devam butonuna basıldığında)
@@ -269,7 +251,7 @@ export default {
           if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
             window.activeExerciseComponent.onContinue();
           }
-          
+
           // Streak 2 veya daha fazlaysa progress değerini güncelle
           if (correctStreak.value >= 2 && stepStore) {
             progress.value = stepStore.currentProgress.value;
@@ -283,13 +265,13 @@ export default {
             window.activeExerciseComponent.onContinue();
           }
         }
-        
+
         resetFooter();
       } else {
         checkAnswer();
       }
     };
-    
+
     const resetFooter = () => {
       canCheck.value = false;
       showResult.value = false;
@@ -297,11 +279,11 @@ export default {
       correctAnswer.value = '';
       activeExerciseContent.value = null;
     };
-    
+
     const closeModal = () => {
       showModal.value = false;
     };
-    
+
     return {
       activeComponent,
       canCheck,
@@ -316,7 +298,7 @@ export default {
       buttonText,
       title,
       currentExerciseData,
-      
+
       // Methods
       checkAnswer,
       continueAction,
@@ -332,11 +314,14 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #1cb0f6;
 }
 
 .layout-content {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;  
+  flex: 1;  
 }
 
 /* Animation for Exercise Components */
@@ -345,8 +330,15 @@ export default {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Modal Styles */
@@ -402,7 +394,14 @@ export default {
 }
 
 @keyframes modal-pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

@@ -10,7 +10,7 @@
         <div class="progress" style="height: 16px;">
           <div class="progress-bar-inner" :style="`width: ${progress}%`" role="progressbar"></div>
         </div>
-        
+
         <!-- Streak göstergesi - 2 ve üzeri streak varsa göster -->
         <div v-if="correctStreak >= 2" class="streak-counter">
           <span>{{ correctStreak }} 🔥</span>
@@ -84,36 +84,44 @@ export default {
 .progress {
   width: 100%;
   height: 16px;
-  background-color: #f0f0f0;
+  background-color: var(--color-swan);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1) inset;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) inset;
 }
 
 .progress-bar-inner {
-  background-color: #ff4b4b;
+  background-color: var(--color-owl);
   height: 100%;
   border-radius: 8px;
   transition: width 0.5s ease-in-out;
-  box-shadow: 0 0 5px rgba(255,75,75,0.5);
+  box-shadow: 0 0 5px rgba(255, 75, 75, 0.5);
 }
 
 .streak-counter {
   position: absolute;
   top: -25px;
   font-weight: bold;
-  color: #ff4b4b;
+  color: var(--color-owl);
   background-color: #fff;
   padding: 3px 8px;
   border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .heart-icon {

@@ -1,30 +1,45 @@
 <template>
-  <div class="exercise-component">
-    <div class="title-container text-center mb-4">
-      <h5 class="text-white">{{ title }}</h5>
-      <div v-if="questionImageUrl" class="question-image-container">
-        <img :src="questionImageUrl" alt="Soru Görseli" class="question-image">
+  <div class="exercise-container">
+    <div class="exercise-component">
+      <div class="title-container">
+        <div class="category">
+          <span>
+            <svg height="32" preserveAspectRatio="xMidYMin slice" width="32"
+              style="color: rgb(var(--color-beetle)); overflow: visible;" viewBox="0 0 33 32">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M16.5 28C23.1274 28 28.5 22.6274 28.5 16C28.5 9.37258 23.1274 4 16.5 4C9.87258 4 4.5 9.37258 4.5 16C4.5 22.6274 9.87258 28 16.5 28ZM11.8184 14.0055C11.3302 13.5173 11.3302 12.7259 11.8184 12.2377L14.1165 9.9396C14.6046 9.45145 15.3961 9.45145 15.8843 9.9396L18.1823 12.2377C18.6705 12.7259 18.6705 13.5173 18.1823 14.0055L15.8843 16.3036C15.3961 16.7917 14.6046 16.7917 14.1165 16.3036L11.8184 14.0055ZM18.586 16.4145C18.1955 16.805 18.1955 17.4382 18.586 17.8287L19.6467 18.8893C20.0372 19.2799 20.6704 19.2799 21.0609 18.8893L22.1215 17.8287C22.5121 17.4382 22.5121 16.805 22.1215 16.4145L21.0609 15.3538C20.6704 14.9633 20.0372 14.9633 19.6467 15.3538L18.586 16.4145ZM14.9356 20.5646C14.6427 20.8575 14.6427 21.3324 14.9356 21.6253L15.6427 22.3324C15.9356 22.6253 16.4105 22.6253 16.7034 22.3324L17.4105 21.6253C17.7034 21.3324 17.7034 20.8575 17.4105 20.5646L16.7034 19.8575C16.4105 19.5646 15.9356 19.5646 15.6427 19.8575L14.9356 20.5646Z"
+                fill="#CE82FF"></path>
+            </svg>
+          </span>
+          YENİ KELİME
+
+        </div>
+        <h5 class="text-white">{{ title }}</h5>
+        <!--  <div v-if="questionImageUrl" class="question-image-container">
+          <img :src="questionImageUrl" alt="Soru Görseli" class="question-image">
+        </div> -->
       </div>
-    </div>
-    
-    <div class="options-grid">
-      <div 
-        v-for="(option, index) in options" 
-        :key="index"
-        class="option-item"
-        :class="{ 'selected': selectedOption === option.name }"
-        @click="selectOption(option)"
-      >
-        <img :src="option.imageUrl" :alt="option.name" class="option-image">
-        <div class="option-text">{{ option.name }}</div>
+
+      <div class="options-grid">
+        <PictureMatchCard v-for="(option, index) in options" :key="index" :option="option"
+          :isSelected="selectedOption === option.name" @select="selectOption" :index="index + 1" />
       </div>
     </div>
   </div>
 </template>
 
 <script>
+// Kart bileşenini import et
+const PictureMatchCard = window["vue3-sfc-loader"].loadModule(
+  './src/components/exercises/PictureMatchCard.vue',
+  window.sfcOptions
+);
+
 export default {
   name: 'PictureMatchExercise',
+  components: {
+    PictureMatchCard: Vue.defineAsyncComponent(() => PictureMatchCard)
+  },
   props: {
     exerciseData: {
       type: Object,
@@ -33,29 +48,29 @@ export default {
   },
   setup(props) {
     const { ref, onMounted } = Vue;
-    
+
     // PictureMatch composable'ını kullan
     const pictureMatch = window.usePictureMatch(props);
-    
+
     // State
     const title = ref("Görsele uygun kelimeyi seçin");
     const questionImageUrl = ref("");
-    
+
     // Init
     onMounted(() => {
       pictureMatch.init();
-      
+
       // Global API
       window.activeExerciseComponent = {
         checkAnswer: pictureMatch.checkAnswer,
         onContinue: pictureMatch.onContinue,
         renderResultContent: pictureMatch.renderResultContent
       };
-      
+
       // Başlığı ayarla
       questionImageUrl.value = pictureMatch.questionImageUrl.value;
     });
-    
+
     return {
       title,
       questionImageUrl,
@@ -68,8 +83,39 @@ export default {
 </script>
 
 <style scoped>
+.exercise-container {
+  display: flex;
+  align-content: center;
+  font-size: 19px;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+
+}
+
+.exercise-component {
+  display: grid;
+  grid-template-rows: min-content minmax(0, 1fr);
+  grid-gap: 16px;
+  height: auto;
+}
+
+.category {
+  color: var(--color-beetle);
+  font-weight: 700;
+  font-size: 19px;
+}
+
 .title-container {
-  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 8px;
+}
+
+.title-container h5 {
+  font-size: 32px;
+  font-weight: 700;
 }
 
 .question-image-container {
@@ -88,43 +134,21 @@ export default {
 
 .options-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.option-item {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 2px solid transparent;
-  border-radius: 12px;
-  padding: 15px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
+  grid-gap: 8px;
   align-items: center;
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.option-item:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-}
+@media (min-width: 700px) {
+  .options-grid {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  }
 
-.option-item.selected {
-  border-color: #58a700;
-  background-color: rgba(88, 167, 0, 0.2);
-}
-
-.option-image {
-  max-width: 100%;
-  height: 120px;
-  object-fit: contain;
-  margin-bottom: 15px;
-}
-
-.option-text {
-  color: white;
-  font-size: 1.1rem;
-  text-align: center;
+  .exercise-component {
+    min-height: 450px;
+    overflow: visible;
+    width: 600px;
+    grid-gap: 24px;
+  }
 }
 </style>

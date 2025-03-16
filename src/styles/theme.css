@@ -71,7 +71,36 @@
 
   /* Added From me */
   --color-cardinal: rgb(238, 85, 85);
+  --color-eel: rgb(241, 247, 251);
+  --color-swan: rgb(55, 70, 79);
+  --color-snow: rgb(19, 31, 36);
+  --internal-border-color: rgb(55, 70, 79);
+  --color-hare: rgb(82, 101, 109);
+  --color-polar: rgb(32, 47, 54);
+  --color-iguana: rgb(32, 47, 54);
+  --color-blue-jay: rgb(63, 133, 167);
+  --color-whale: rgb(24, 153, 214);
 
+  --color-beetle: rgb(206, 130, 255);
+  --color-owl: rgb(147, 211, 51);
+
+  --internal-background-color: rgb(19, 31, 36);
+  --internal--switchable__border-color: rgb(55, 70, 79);
+  --internal-color-active: rgb(82, 101, 109);
+  --internal-background-color-disabled: rgb(55, 70, 79);
+  --internal-color-disabled: rgb(82, 101, 109);
+
+  
+  --internal-background-color-default: rgb(147, 211, 51);
+  --internal-border-color-default: rgb(121, 185, 51);
+  --color-sea-sponge: rgb(32, 47, 54);
+  --color-tree-frog: rgb(121, 185, 51);
+
+  --color-walking-fish: rgb(32, 47, 54);
+  --color-fire-ant: rgb(216, 72, 72);
+  
+  --internal-background-color-danger: rgb(238, 85, 85);
+  --internal-color-danger: rgb(19, 31, 36);
 }
 
 /* Dark Theme */
@@ -118,6 +147,31 @@
 
   /* Added From me */
   --color-cardinal: rgb(238, 85, 85);
+  --color-eel: rgb(241, 247, 251);
+  --color-swan: rgb(55, 70, 79);
+  --color-snow: rgb(19, 31, 36);
+  --internal-border-color: rgb(55, 70, 79);
+  --color-hare: rgb(82, 101, 109);
+  --color-polar: rgb(32, 47, 54);
+  --color-iguana: rgb(32, 47, 54);
+  --color-blue-jay: rgb(63, 133, 167);
+  --color-beetle: rgb(206, 130, 255);
+  --color-owl: rgb(147, 211, 51);
+
+  --internal-background-color: rgb(19, 31, 36);
+  --internal--switchable--border-color: rgb(55, 70, 79);
+  --internal-color-active: rgb(82, 101, 109);
+  --internal-background-color-disabled: rgb(55, 70, 79);
+  --internal-color-disabled: rgb(82, 101, 109);
+
+  
+  --internal-background-color-default: rgb(147, 211, 51);
+  --internal-border-color-default: rgb(121, 185, 51);
+  --color-sea-sponge: rgb(32, 47, 54);
+
+  --color-tree-frog: rgb(121, 185, 51);
+  --color-walking-fish: rgb(32, 47, 54);
+  --color-fire-ant: rgb(216, 72, 72);
 }
 
 /* Utility Classes */

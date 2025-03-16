@@ -1,25 +1,14 @@
 <template>
-  <div 
-    class="duo-btn-container"
-    @mousedown="isPressed = true"
-    @mouseup="isPressed = false"
-    @mouseleave="isPressed = false"
-    @touchstart="isPressed = true"
-    @touchend="isPressed = false"
-    @touchcancel="isPressed = false"
-  >
-    <button
-      :class="[
-        'duo-btn',
-        variantClass,
-        sizeClass,
-        {'rounded-full': rounded},
-        {'is-pressed': isPressed}
-      ]"
-      :disabled="disabled"
-      @click="$emit('click')"
-    >
-      <span class="btn-content" :class="{'is-pressed': isPressed}">
+  <div class="button-container" @mousedown="isPressed = true" @mouseup="isPressed = false"
+    @mouseleave="isPressed = false" @touchstart="isPressed = true" @touchend="isPressed = false"
+    @touchcancel="isPressed = false">
+    <button :class="[
+      'custom-button',
+      variantClass,
+      { 'is-pressed': isPressed },
+      { 'is-disabled': disabled }
+    ]" :disabled="disabled" @click="$emit('click')">
+      <span class="button-content" :class="{ 'is-pressed': isPressed }">
         <slot />
       </span>
     </button>
@@ -35,19 +24,9 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'primary', 'primaryOutline', 'secondary', 'secondaryOutline', 
-                           'danger', 'dangerOutline', 'super', 'superOutline', 'ghost'].includes(value)
-  },
-  size: {
-    type: String,
-    default: 'default',
-    validator: (value) => ['default', 'sm', 'lg', 'icon'].includes(value)
+    validator: (value) => ['default', 'secondary', 'danger'].includes(value)
   },
   disabled: {
-    type: Boolean,
-    default: false
-  },
-  rounded: {
     type: Boolean,
     default: false
   }
@@ -55,394 +34,154 @@ const props = defineProps({
 
 const variantClass = computed(() => {
   const variants = {
-    default: 'btn-default',
-    primary: 'btn-primary',
-    primaryOutline: 'btn-primary-outline',
-    secondary: 'btn-secondary',
-    secondaryOutline: 'btn-secondary-outline',
-    danger: 'btn-danger',
-    dangerOutline: 'btn-danger-outline',
-    super: 'btn-super',
-    superOutline: 'btn-super-outline',
-    ghost: 'btn-ghost'
+    default: 'button-default',
+    secondary: 'button-secondary',
+    danger: 'button-danger'
   };
-  
-  return variants[props.variant] || 'btn-default';
-});
 
-const sizeClass = computed(() => {
-  const sizes = {
-    default: 'btn-default-size',
-    sm: 'btn-sm',
-    lg: 'btn-lg',
-    icon: 'btn-icon'
-  };
-  
-  return sizes[props.size] || 'btn-default-size';
+  return variants[props.variant] || 'button-default';
 });
 
 defineEmits(['click']);
 </script>
 
 <style scoped>
-.duo-btn-container {
+.button-container {
   position: relative;
-  display: inline-block;
-  width: 100%;
 }
 
-/* Base button styles */
-.duo-btn {
+.custom-button {
+  background: none;
+  border: solid transparent;
+  border-radius: 16px;
+  border-width: 2px 2px 4px;
+  color: rgb(82, 101, 109);
+  height: 50px;
+  padding: 0 16px;
+  font-weight: 900;
+  font-size: 15px;
+  line-height: 1.2;
   position: relative;
-  display: inline-flex;
+}
+
+.button-content {
+  position: relative;
+  z-index: 1;
+}
+
+.button-default {
+  border-bottom: 4px solid rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+}
+
+.button-default:active {
+  color: rgb(19, 31, 36);
+  transform: translateY(4px) translateZ(0);
+}
+
+.button-default::before {
+  background-color: var(--internal-background-color-default);
+  border-radius: 16px;
+  bottom: 0;
+  box-shadow: 0 4px 0;
+  color: var(--internal-border-color-default);
+  content: "";
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: box-shadow 0.1s;
+}
+
+.button-default.is-disabled::before {
+  background-color: var(--internal-background-color-disabled);
+  color: var(--internal-color-disabled);
+  box-shadow: 0 2px 0;
+}
+
+.button-secondary {
   align-items: center;
   justify-content: center;
-  width: 100%;
-  white-space: nowrap;
-  font-size: 0.875rem;
-  font-weight: 700;
-  font-family: 'Nunito', sans-serif;
+  text-decoration: none;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: none;
-  box-sizing: border-box;
-  cursor: pointer;
-  transition: transform 0.05s ease-in-out;
+  white-space: nowrap;
+  filter: brightness(1);
 }
 
-.duo-btn:focus {
-  outline: none;
+.button-secondary:hover {
+  filter: brightness(0.9);
 }
 
-.duo-btn:disabled {
-  opacity: 0.5;
+.button-secondary:active {
+  color: var(--internal-color-active);
+  transform: translateY(2px) translateZ(0);
+}
+
+.button-secondary.is-disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-content {
-  position: relative;
-  transition: transform 0.05s ease-in-out;
-}
-
-.btn-content.is-pressed {
-  transform: translateY(2px);
-}
-
-/* Default button style */
-.btn-default {
-  border-radius: 0.75rem;
-  background-color: #cfcfcf; /* Bottom layer - Duolingo Alto */
-}
-
-.btn-default::before {
-  content: '';
+.button-secondary::before {
+  background-color: var(--internal-background-color);
+  border: 3px solid var(--internal--switchable__border-color);
+  border-radius: 16px;
+  bottom: -2px;
+  box-shadow: 0 2px 0;
+  color: var(--internal--switchable__border-color);
+  content: "";
+  left: -2px;
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: #f0f0f0; /* Top layer - Duolingo Gallery */
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
+  right: -2px;
+  top: -2px;
 }
 
-.btn-default.is-pressed::before {
-  bottom: 0;
+.button-danger {
+  border-bottom: 4px solid rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  color: var(--internal-color-danger);
+  font-weight: 900;
 }
 
-.btn-default span {
-  position: relative;
-  z-index: 2;
-  color: #4c4c4c; /* Duolingo Tundora */
-}
-
-/* Primary button style */
-.btn-primary {
-  border-radius: 0.75rem;
-  background-color: #14d4f4; /* Bottom layer - Duolingo Bright Turquoise */
-}
-
-.btn-primary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: #1cb0f6; /* Top layer - Duolingo Dodger Blue */
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-}
-
-.btn-primary.is-pressed::before {
-  bottom: 0;
-}
-
-.btn-primary span {
-  position: relative;
-  z-index: 2;
+.button-danger:active {
   color: white;
+  transform: translateY(4px) translateZ(0);
 }
 
-/* Primary Outline button style */
-.btn-primary-outline {
-  border-radius: 0.75rem;
-  background-color: #cfcfcf; /* Bottom layer - Duolingo Alto */
-}
-
-.btn-primary-outline::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: white;
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-  border: 2px solid #1cb0f6; /* Duolingo Dodger Blue */
-  box-sizing: border-box;
-}
-
-.btn-primary-outline.is-pressed::before {
+.button-danger::before {
+  background-color: var(--internal-background-color-danger);
+  border-radius: 16px;
   bottom: 0;
-}
-
-.btn-primary-outline span {
-  position: relative;
-  z-index: 2;
-  color: #1cb0f6; /* Duolingo Dodger Blue */
-}
-
-/* Secondary button style */
-.btn-secondary {
-  border-radius: 0.75rem;
-  background-color: #8ee000; /* Bottom layer - Duolingo Chartreuse */
-}
-
-.btn-secondary::before {
-  content: '';
-  position: absolute;
-  top: 0;
+  box-shadow: 0 4px 0;
+  color: var(--internal-color-danger);
+  content: "";
   left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: #7ac70c; /* Top layer - Duolingo Pistachio */
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-}
-
-.btn-secondary.is-pressed::before {
-  bottom: 0;
-}
-
-.btn-secondary span {
-  position: relative;
-  z-index: 2;
-  color: white;
-}
-
-/* Secondary Outline button style */
-.btn-secondary-outline {
-  border-radius: 0.75rem;
-  background-color: #cfcfcf; /* Bottom layer - Duolingo Alto */
-}
-
-.btn-secondary-outline::before {
-  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
   right: 0;
-  bottom: 4px;
-  background-color: white;
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-  border: 2px solid #7ac70c; /* Duolingo Pistachio */
-  box-sizing: border-box;
-}
-
-.btn-secondary-outline.is-pressed::before {
-  bottom: 0;
-}
-
-.btn-secondary-outline span {
-  position: relative;
-  z-index: 2;
-  color: #7ac70c; /* Duolingo Pistachio */
-}
-
-/* Danger button style */
-.btn-danger {
-  border-radius: 0.75rem;
-  background-color: #d33131; /* Bottom layer - Duolingo Persian Red */
-}
-
-.btn-danger::before {
-  content: '';
-  position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: #e53838; /* Top layer - Duolingo Cinnabar */
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
+  transition: box-shadow 0.1s;
 }
 
-.btn-danger.is-pressed::before {
-  bottom: 0;
+.button-danger.is-disabled::before {
+  background-color: var(--internal-background-color-disabled);
+  color: var(--internal-color-disabled);
+ 
 }
 
-.btn-danger span {
-  position: relative;
-  z-index: 2;
-  color: white;
+.button-danger:not(.is-disabled):hover::before {
+  filter: brightness(1.1);
 }
 
-/* Danger Outline button style */
-.btn-danger-outline {
-  border-radius: 0.75rem;
-  background-color: #cfcfcf; /* Bottom layer - Duolingo Alto */
-}
+@media (min-width: 700px) {
+  .button-container {
+    grid-column: auto / 2;
+    justify-self: start;
+  }
 
-.btn-danger-outline::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: white;
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-  border: 2px solid #e53838; /* Duolingo Cinnabar */
-  box-sizing: border-box;
-}
-
-.btn-danger-outline.is-pressed::before {
-  bottom: 0;
-}
-
-.btn-danger-outline span {
-  position: relative;
-  z-index: 2;
-  color: #e53838; /* Duolingo Cinnabar */
-}
-
-/* Super button style */
-.btn-super {
-  border-radius: 0.75rem;
-  background-color: #a560e8; /* Bottom layer - Duolingo Medium Purple */
-}
-
-.btn-super::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: #8549ba; /* Top layer - Duolingo Studio */
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-}
-
-.btn-super.is-pressed::before {
-  bottom: 0;
-}
-
-.btn-super span {
-  position: relative;
-  z-index: 2;
-  color: white;
-}
-
-/* Super Outline button style */
-.btn-super-outline {
-  border-radius: 0.75rem;
-  background-color: #cfcfcf; /* Bottom layer - Duolingo Alto */
-}
-
-.btn-super-outline::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  background-color: white;
-  border-radius: 0.75rem;
-  transition: bottom 0.05s ease-in-out;
-  border: 2px solid #8549ba; /* Duolingo Studio */
-  box-sizing: border-box;
-}
-
-.btn-super-outline.is-pressed::before {
-  bottom: 0;
-}
-
-.btn-super-outline span {
-  position: relative;
-  z-index: 2;
-  color: #8549ba; /* Duolingo Studio */
-}
-
-/* Ghost button style */
-.btn-ghost {
-  border-radius: 0.75rem;
-  background-color: transparent;
-}
-
-.btn-ghost::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: transparent;
-  border-radius: 0.75rem;
-  transition: background-color 0.05s ease-in-out;
-}
-
-.btn-ghost.is-pressed::before {
-  background-color: rgba(207, 207, 207, 0.3); /* Duolingo Alto with transparency */
-}
-
-.btn-ghost span {
-  position: relative;
-  z-index: 2;
-  color: #6f6f6f; /* Duolingo Dove Gray */
-}
-
-/* Button sizes */
-.btn-default-size {
-  height: 2.75rem; /* h-11 */
-  padding: 0.5rem 1rem; /* px-4 py-2 */
-}
-
-.btn-sm {
-  height: 2.25rem; /* h-9 */
-  padding: 0 0.75rem; /* px-3 */
-}
-
-.btn-lg {
-  height: 3rem; /* h-12 */
-  padding: 0 2rem; /* px-8 */
-}
-
-.btn-icon {
-  height: 2.5rem; /* h-10 */
-  width: 2.5rem; /* w-10 */
-  padding: 0;
-}
-
-.rounded-full {
-  border-radius: 9999px !important;
-}
-
-.rounded-full::before {
-  border-radius: 9999px !important;
+  .custom-button {
+    min-width: 150px;
+    width: 100%;
+    outline: none;
+  }
 }
 </style>
