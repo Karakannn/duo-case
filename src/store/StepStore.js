@@ -2,18 +2,19 @@
 (function() {
   const { ref, computed, reactive, readonly } = Vue;
 
-  // URL'den adım parametresini al
-  function getStepFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const stepParam = urlParams.get('step');
-    return stepParam ? parseInt(stepParam, 10) : 1;
+  // Global adım değişkeni (başlangıçta 1)
+  if (window.globalStepId === undefined) {
+    window.globalStepId = 1;
   }
 
-  // URL'deki adım parametresini güncelle
-  function updateUrlStep(stepId) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('step', stepId);
-    window.history.replaceState({}, '', url);
+  // Global adım değişkeninden adım numarasını al
+  function getGlobalStep() {
+    return window.globalStepId || 1;
+  }
+
+  // Global adım değişkenini güncelle
+  function updateGlobalStep(stepId) {
+    window.globalStepId = stepId;
   }
 
   // Global olarak erişilebilir StepStore fonksiyonu
@@ -41,8 +42,8 @@
       }));
     });
 
-    // URL'den başlangıç adımını al
-    const initialStepId = getStepFromUrl();
+    // Global değişkenden başlangıç adımını al
+    const initialStepId = getGlobalStep();
 
     // Durum değişkenleri
     const currentStepId = ref(initialStepId);
@@ -65,8 +66,8 @@
     function setStep(stepId) {
       if (stepId >= 1 && stepId <= totalSteps.value) {
         currentStepId.value = stepId;
-        // URL'yi güncelle
-        updateUrlStep(stepId);
+        // Global değişkeni güncelle
+        updateGlobalStep(stepId);
       }
     }
 
@@ -77,16 +78,16 @@
         // Tüm adımlar tamamlandığında başa dön
         currentStepId.value = 1;
       }
-      // URL'yi güncelle
-      updateUrlStep(currentStepId.value);
+      // Global değişkeni güncelle
+      updateGlobalStep(currentStepId.value);
       return currentStep.value;
     }
 
     function previousStep() {
       if (currentStepId.value > 1) {
         currentStepId.value--;
-        // URL'yi güncelle
-        updateUrlStep(currentStepId.value);
+        // Global değişkeni güncelle
+        updateGlobalStep(currentStepId.value);
       }
       return currentStep.value;
     }
@@ -97,8 +98,8 @@
         activeSequence.value = sequenceName;
         // İlk adıma geri dön
         currentStepId.value = 1;
-        // URL'yi güncelle
-        updateUrlStep(1);
+        // Global değişkeni güncelle
+        updateGlobalStep(1);
         return true;
       }
       return false;
@@ -144,13 +145,8 @@
       return activeSequence.value;
     }
 
-    // URL değişikliklerini izle
-    window.addEventListener('popstate', () => {
-      const newStepId = getStepFromUrl();
-      if (newStepId !== currentStepId.value) {
-        setStep(newStepId);
-      }
-    });
+    // Global değişken değişikliklerini izle (gerekirse)
+    // URL değişikliklerini izleme kodu kaldırıldı (popstate event listener)
 
     // Store API'sını döndür
     return {
@@ -200,30 +196,19 @@
         getHearts: () => globalStepStore.getHearts(),
         getScore: () => globalStepStore.getScore(),
         getCurrentStep: () => globalStepStore.getCurrentStep(),
-        getTotalSteps: () => globalStepStore.getTotalSteps(),
         getCurrentStepInfo: () => globalStepStore.getCurrentStepInfo(),
+        getTotalSteps: () => globalStepStore.getTotalSteps(),
         getActiveSequence: () => globalStepStore.getActiveSequence(),
         
-        // Actions
-        setCurrentStep: (stepId) => globalStepStore.setStep(stepId),
-        decreaseHearts: () => globalStepStore.decreaseHearts(),
-        increaseScore: (points) => globalStepStore.increaseScore(points),
+        // State setters & actions
+        setStep: (stepId) => globalStepStore.setStep(stepId),
         nextStep: () => globalStepStore.nextStep(),
-        changeSequence: (sequenceName) => globalStepStore.changeSequence(sequenceName),
-        
-        // Eski state ile uyumluluk için alanlar
-        _state: {
-          get progress() { return globalStepStore.currentProgress.value; },
-          get hearts() { return globalStepStore.hearts.value; },
-          get score() { return globalStepStore.score.value; },
-          get currentStep() { return globalStepStore.currentStepId.value; },
-          get totalSteps() { return globalStepStore.totalSteps.value; },
-          get steps() { return [...globalStepStore.allSteps.value]; },
-          get activeSequence() { return globalStepStore.activeSequence.value; }
-        }
+        previousStep: () => globalStepStore.previousStep(),
+        changeSequence: (name) => globalStepStore.changeSequence(name),
+        decreaseHearts: () => globalStepStore.decreaseHearts(),
+        increaseScore: (points) => globalStepStore.increaseScore(points)
       };
     }
-    
     return globalStepStore;
   };
 })();

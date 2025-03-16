@@ -118,20 +118,9 @@ export default {
       });
     };
 
-    // URL'den adım parametresini al
-    const getStepFromUrl = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const stepParam = urlParams.get('step');
-      return stepParam ? parseInt(stepParam, 10) : 1;
-    };
-
-    // URL'deki değişiklikleri izle
-    const handleUrlChange = () => {
-      const stepId = getStepFromUrl();
-      if (stepStore && stepId) {
-        stepStore.setStep(stepId);
-        loadExerciseDataAndComponent(stepId);
-      }
+    // Global değişkenden adım numarasını al
+    const getGlobalStep = () => {
+      return window.globalStepId || 1;
     };
 
     // Step ID'ye göre egzersiz verisini yükle ve bileşeni ayarla
@@ -175,18 +164,13 @@ export default {
       // MainLayout'u global olarak erişilebilir yapın
       exposeMainLayout();
       
-      // URL'deki adım parametresini kontrol et
-      const urlStep = getStepFromUrl();
+      // Global değişkendeki adım numarasını kontrol et
+      const globalStep = getGlobalStep();
       
       // Step store durumunu ayarla
       if (stepStore) {
         // Başlangıç adımını ayarla
-        if (urlStep) {
-          stepStore.setStep(urlStep);
-        } else {
-          // URL'de bir adım parametresi yoksa, 1. adımı ayarla ve URL'yi güncelle
-          stepStore.setStep(1);
-        }
+        stepStore.setStep(globalStep);
         
         // Egzersiz verisini yükle ve bileşeni ayarla
         loadExerciseDataAndComponent(stepStore.currentStepId.value);
@@ -209,11 +193,6 @@ export default {
           loadExerciseDataAndComponent(newStepId);
         });
       }
-      
-      // URL değişikliklerini izle
-      window.addEventListener('popstate', handleUrlChange);
-      
-      console.log("MainLayout mounted - window.mainLayout is now available");
     });
 
     // Methods
