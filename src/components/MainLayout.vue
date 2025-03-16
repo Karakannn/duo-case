@@ -1,7 +1,7 @@
 <template>
   <div class="layout">
     <!-- Header -->
-    <Header />
+    <Header :progress="progress" :hearts="hearts" :correctStreak="correctStreak" />
 
     <!-- Main Content Area -->
     <div class="layout-content">
@@ -24,6 +24,7 @@
       :isCorrect="isCorrect" 
       :canCheck="canCheck" 
       :correctAnswer="correctAnswer" 
+      :correctStreak="correctStreak"
     />
 
     <!-- Result Modal - Only for incorrect answers -->
@@ -74,6 +75,7 @@ export default {
     const hearts = ref(5);
     const title = ref('');
     const currentExerciseData = ref(null);
+    const correctStreak = ref(0); // Ardışık doğru cevap sayısı
 
     // Current step tracking
     const currentStepIndex = ref(0);
@@ -167,6 +169,10 @@ export default {
       // Global değişkendeki adım numarasını kontrol et
       const globalStep = getGlobalStep();
       
+      // Progress değerini minimal bir değer olarak ayarla (ipucu olarak)
+      progress.value = 0; 
+      correctStreak.value = 0;
+      
       // Step store durumunu ayarla
       if (stepStore) {
         // Başlangıç adımını ayarla
@@ -175,22 +181,20 @@ export default {
         // Egzersiz verisini yükle ve bileşeni ayarla
         loadExerciseDataAndComponent(stepStore.currentStepId.value);
         
-        // Progress ve can durumunu ayarla
-        progress.value = stepStore.currentProgress.value;
+        // Canları ayarla
         hearts.value = stepStore.hearts.value;
         
         // Step store değişikliklerini izle
-        watch(() => stepStore.currentProgress.value, (newValue) => {
-          progress.value = newValue;
-        });
+        watch(() => stepStore.currentStepId.value, (newStepId) => {
+          // Step ID değiştiğinde, egzersiz verisini ve bileşeni güncelle
+          loadExerciseDataAndComponent(newStepId);
+          
+          console.log(`Step changed to ${newStepId}`);
+        }, { immediate: true });
         
+        // Hearts değerini izle
         watch(() => stepStore.hearts.value, (newValue) => {
           hearts.value = newValue;
-        });
-        
-        // Geçerli adım değiştiğinde veriyi ve bileşeni güncelle
-        watch(() => stepStore.currentStepId.value, (newStepId) => {
-          loadExerciseDataAndComponent(newStepId);
         });
       }
     });
@@ -204,11 +208,22 @@ export default {
     };
 
     const nextExercise = () => {
-      // Step store durumunu güncelle
-      if (stepStore) {
-        stepStore.nextStep();
-        // Yeni step verisini yükle - watch değişikliği otomatik olarak çağıracak
+      if (!stepStore) return;
+      
+      // Bir sonraki adıma geç
+      const nextStep = stepStore.nextStep();
+      
+      // Progress değerini güncelle
+      progress.value = stepStore.currentProgress.value;
+      
+      // Varsa egzersiz verisini ve bileşeni yükle
+      if (nextStep) {
+        loadExerciseDataAndComponent(stepStore.currentStepId.value);
+        console.log(`Moving to next exercise, step: ${stepStore.currentStepId.value}, progress: ${progress.value}%`);
       }
+      
+      // UI durumunu sıfırla
+      resetFooter();
     };
     
     const checkAnswer = () => {
@@ -222,8 +237,22 @@ export default {
         showResult.value = true;
         correctAnswer.value = result.correctAnswer;
         
-        // Doğru değilse yürek azalt
-        if (!isCorrect.value) {
+        // Doğru cevap
+        if (isCorrect.value) {
+          correctStreak.value++;
+          console.log(`Correct! Streak is now: ${correctStreak.value}`);
+          
+          // Streak 2 veya daha fazla ise progress güncellensin
+          if (correctStreak.value >= 2 && stepStore) {
+            progress.value = stepStore.currentProgress.value;
+            console.log(`Streak is ${correctStreak.value}, updating progress to: ${progress.value}%`);
+          }
+        } else {
+          // Yanlış cevap - streak sıfırla ve progress sıfırla
+          console.log(`Incorrect answer, resetting streak from ${correctStreak.value} to 0`);
+          correctStreak.value = 0;
+          progress.value = 0;
+          
           if (stepStore) {
             stepStore.decreaseHeart();
             showModal.value = true;
@@ -234,9 +263,27 @@ export default {
     
     const continueAction = () => {
       if (showResult.value) {
-        if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
-          window.activeExerciseComponent.onContinue();
+        // Doğru cevap verdiyse (devam butonuna basıldığında)
+        if (isCorrect.value) {
+          // Bir sonraki adıma geç
+          if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
+            window.activeExerciseComponent.onContinue();
+          }
+          
+          // Streak 2 veya daha fazlaysa progress değerini güncelle
+          if (correctStreak.value >= 2 && stepStore) {
+            progress.value = stepStore.currentProgress.value;
+            console.log(`Streak is ${correctStreak.value}, continuing with progress: ${progress.value}%`);
+          } else {
+            console.log(`Streak is ${correctStreak.value}, progress stays at: ${progress.value}%`);
+          }
+        } else {
+          // Yanlış cevap - sadece onContinue çağır
+          if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
+            window.activeExerciseComponent.onContinue();
+          }
         }
+        
         resetFooter();
       } else {
         checkAnswer();
@@ -264,6 +311,7 @@ export default {
       showModal,
       hearts,
       progress,
+      correctStreak,
       footerStateClass,
       buttonText,
       title,

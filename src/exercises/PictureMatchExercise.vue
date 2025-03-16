@@ -2,9 +2,8 @@
   <div class="exercise-component">
     <div class="title-container text-center mb-4">
       <h5 class="text-white">{{ title }}</h5>
-      <div v-if="audioWord" class="audio-badge badge bg-primary rounded-pill fs-5 px-4 py-2 mt-3">
-        <i class="fas fa-volume-up me-2"></i>
-        <span>{{ audioWord }}</span>
+      <div v-if="questionImageUrl" class="question-image-container">
+        <img :src="questionImageUrl" alt="Soru Görseli" class="question-image">
       </div>
     </div>
     
@@ -13,11 +12,11 @@
         v-for="(option, index) in options" 
         :key="index"
         class="option-item"
-        :class="{ 'selected': selected === index }"
-        @click="selectOption(index)"
+        :class="{ 'selected': selectedOption === option.name }"
+        @click="selectOption(option)"
       >
-        <img :src="option.image" :alt="option.text" class="option-image">
-        <div class="option-text">{{ option.text }}</div>
+        <img :src="option.imageUrl" :alt="option.name" class="option-image">
+        <div class="option-text">{{ option.name }}</div>
       </div>
     </div>
   </div>
@@ -26,117 +25,43 @@
 <script>
 export default {
   name: 'PictureMatchExercise',
-  components: {},
-  emits: ['complete'],
-  setup(props, { emit }) {
-    const { ref, onMounted, watch } = Vue;
+  props: {
+    exerciseData: {
+      type: Object,
+      default: () => ({})
+    }
+  },
+  setup(props) {
+    const { ref, onMounted } = Vue;
     
-    // Gerekli kompozisyonu kullan
-    const pictureMatch = window.usePictureMatch();
-    const exerciseBase = window.useExercise({ exerciseName: 'picture-match' });
+    // PictureMatch composable'ını kullan
+    const pictureMatch = window.usePictureMatch(props);
     
     // State
-    const title = ref("");
-    const audioWord = ref("");
-    const options = ref([]);
-    const correctOption = ref("");
+    const title = ref("Görsele uygun kelimeyi seçin");
+    const questionImageUrl = ref("");
     
-    // Mevcut adım bilgisini yükle
-    const loadCurrentStepData = () => {
-      const stepData = exerciseBase.getCurrentStepData();
-      
-      if (stepData && stepData.type === 'picture-match' && stepData.question) {
-        // Adım verisinden soru bilgisini al
-        title.value = `Bunlardan hangisi "${stepData.question.correctOption}"?`;
-        audioWord.value = stepData.question.correctOption || "";
-        
-        // Seçenekleri resimli formata dönüştür
-        options.value = stepData.question.options.map(option => {
-          return {
-            text: option,
-            image: stepData.question.imageUrl || `/src/assets/images/${option}.svg`
-          };
-        });
-        
-        correctOption.value = stepData.question.correctOption || "";
-        
-        console.log('PictureMatch exercise loaded with data:', stepData);
-      } else {
-        // Adım verisi bulunamazsa varsayılan değerleri kullan
-        title.value = "Bunlardan hangisi \"çay\"?";
-        audioWord.value = "çay";
-        options.value = [
-          { text: "milk", image: "/src/assets/images/milk.svg" },
-          { text: "coffee", image: "/src/assets/images/coffee.svg" },
-          { text: "tea", image: "/src/assets/images/tea.svg" }
-        ];
-        correctOption.value = "tea";
-        
-        console.warn('No matching step data found for PictureMatch, using default values');
-      }
-      
-      // Egzersiz için global değişkenleri güncelle
-      window.currentExercise = {
-        correctPairs: [{ id: audioWord.value, matchId: correctOption.value }],
-        options: options.value
-      };
-    };
-    
-    // Selected değeri kompozisyondan al
-    const selected = pictureMatch.selectedOption;
-    
-    // Seçenek seçme
-    const selectOption = (index) => {
-      pictureMatch.selectOption(index);
-    };
-    
-    // Bileşen yüklendiğinde
+    // Init
     onMounted(() => {
-      // Adım verisini yükle
-      loadCurrentStepData();
+      pictureMatch.init();
       
-      // Kompozisyonu sıfırla
-      pictureMatch.reset();
-      
-      // Global erişim için
+      // Global API
       window.activeExerciseComponent = {
-        checkAnswer: () => {
-          const selectedPairs = selected.value !== null ? 
-            [{ id: audioWord.value, matchId: options.value[selected.value].text }] : 
-            [];
-            
-          return pictureMatch.checkAnswer({
-            selectedPairs: selectedPairs
-          });
-        },
-        onContinue: () => {
-          pictureMatch.reset();
-          
-          // Sonraki egzersize geç
-          if (window.mainLayout?.nextExercise) {
-            window.mainLayout.nextExercise();
-          }
-        },
+        checkAnswer: pictureMatch.checkAnswer,
+        onContinue: pictureMatch.onContinue,
         renderResultContent: pictureMatch.renderResultContent
       };
+      
+      // Başlığı ayarla
+      questionImageUrl.value = pictureMatch.questionImageUrl.value;
     });
-    
-    // Adım değiştiğinde veriyi güncelle
-    const stepStore = window.useStepStore();
-    if (stepStore) {
-      watch(() => stepStore.currentStepId.value, () => {
-        loadCurrentStepData();
-        pictureMatch.reset();
-      });
-    }
     
     return {
       title,
-      audioWord,
-      options,
-      selected,
-      selectOption,
-      showResult: pictureMatch.showResult
+      questionImageUrl,
+      options: pictureMatch.options,
+      selectedOption: pictureMatch.selectedOption,
+      selectOption: pictureMatch.selectOption
     };
   }
 }
@@ -147,9 +72,18 @@ export default {
   margin-bottom: 30px;
 }
 
-.audio-badge {
-  cursor: pointer;
-  display: inline-block;
+.question-image-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.question-image {
+  max-width: 300px;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .options-grid {

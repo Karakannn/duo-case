@@ -6,8 +6,15 @@
           class="cancel-icon" />
       </div>
 
-      <div class="progress" style="height: 16px;">
-        <div class="progress-bar-inner" :style="`width: ${progress}%`" role="progressbar"></div>
+      <div class="progress-container">
+        <div class="progress" style="height: 16px;">
+          <div class="progress-bar-inner" :style="`width: ${progress}%`" role="progressbar"></div>
+        </div>
+        
+        <!-- Streak göstergesi - 2 ve üzeri streak varsa göster -->
+        <div v-if="correctStreak >= 2" class="streak-counter">
+          <span>{{ correctStreak }} 🔥</span>
+        </div>
       </div>
 
       <div class="hearts-container d-flex align-items-center">
@@ -30,9 +37,24 @@ export default {
     hearts: {
       type: Number,
       default: 5
+    },
+    correctStreak: {
+      type: Number,
+      default: 0
     }
   },
-  emits: ['select']
+  emits: ['select'],
+  mounted() {
+    console.log(`Header mounted with progress: ${this.progress}%, streak: ${this.correctStreak}`);
+  },
+  watch: {
+    progress(newValue) {
+      console.log(`Progress updated in Header: ${newValue}%`);
+    },
+    correctStreak(newValue) {
+      console.log(`Streak updated: ${newValue}`);
+    }
+  }
 }
 </script>
 
@@ -41,7 +63,6 @@ export default {
   padding: 50px 40px 0;
   margin: 0 auto;
   max-width: 1080px;
-
 }
 
 .exercise-header-inner {
@@ -52,23 +73,47 @@ export default {
   justify-content: space-between;
 }
 
-.exercise-info {
-  width: 100%;
+.progress-container {
+  flex-grow: 1;
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
 }
 
 .progress {
-  flex-grow: 1;
+  width: 100%;
   height: 16px;
-  background-color: var(--color-progress-bar-bg);
-  border-radius: 3px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) inset;
 }
 
 .progress-bar-inner {
-  background-color: var(--color-progress-bar-bg-inner);
+  background-color: #ff4b4b;
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.5s ease-in-out;
+  box-shadow: 0 0 5px rgba(255,75,75,0.5);
+}
+
+.streak-counter {
+  position: absolute;
+  top: -25px;
+  font-weight: bold;
+  color: #ff4b4b;
+  background-color: #fff;
+  padding: 3px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 .heart-icon {

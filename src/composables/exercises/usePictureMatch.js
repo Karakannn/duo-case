@@ -1,103 +1,87 @@
-// usePictureMatch.js - Resim Eşleştirme egzersizleri için özel kompozisyon
+// usePictureMatch.js - Resim Eşleştirme egzersizi composable'ı
 (function() {
-  const { ref, computed } = Vue;
+  const { ref } = Vue;
 
-  // Egzersiz tanımı
-  const exerciseInfo = {
-    id: 'picture-match',
-    name: 'Resim Eşleştirme',
-    description: 'Verilen kelimeye uygun resmi seçin',
-    component: 'PictureMatchExercise',
-    path: '/exercises/PictureMatchExercise.vue',
-    icon: 'fa-solid fa-image'
-  };
-
-  // Doğrulama fonksiyonu
-  function validatePictureMatch(params) {
-    const { selectedPairs, correctPairs } = params;
-
-    // Tüm eşleştirmelerin doğruluğunu kontrol et
-    const allCorrect = correctPairs.every(pair => {
-      const matchingPair = selectedPairs.find(selected => selected.id === pair.id);
-      return matchingPair && matchingPair.matchId === pair.matchId;
+  window.usePictureMatch = function(props) {
+    // Ortak egzersiz temelini kullan
+    const exercise = window.useExercise(props, {
+      exerciseType: 'picture-match',
+      defaultData: {
+        imageUrl: '/images/question/dog.jpg',
+        options: [
+          { name: 'köpek', imageUrl: '/images/options/dog.jpg' },
+          { name: 'kedi', imageUrl: '/images/options/cat.jpg' }
+        ],
+        correctOption: 'köpek'
+      }
     });
-
-    return {
-      isValid: selectedPairs.length === correctPairs.length,
-      isCorrect: allCorrect,
-      correctAnswer: correctPairs,
-      feedbackMessage: allCorrect
-        ? "Tebrikler, tüm resimleri doğru eşleştirdiniz."
-        : "Yanlış eşleştirmeler var. Lütfen tekrar deneyin."
+    
+    // State
+    const questionImageUrl = ref('');
+    const options = ref([]);
+    const correctOption = ref('');
+    const selectedOption = ref(null);
+    
+    // Init: Egzersiz verilerini yükle
+    const init = () => {
+      exercise.loadExerciseDataFromProps();
+      
+      if (exercise.exerciseData.value.question) {
+        const questionData = exercise.exerciseData.value.question;
+        questionImageUrl.value = questionData.imageUrl || '';
+        options.value = questionData.options || [];
+        correctOption.value = questionData.correctOption || '';
+        selectedOption.value = null;
+      }
     };
-  }
-
-  // Kompozisyon
-  window.usePictureMatch = function() {
-    const selectedPairs = ref([]);
-    const canCheck = computed(() => selectedPairs.value.length > 0);
-
-    // Ana exercise kullanımını çağırma
-    const baseExercise = window.useExercise({
-      exerciseName: 'picture-match'
-    });
-
-    // Eşleştirme
-    function matchItems(item1, item2) {
-      // Eğer zaten eşleştirilmişse, kaldır
-      const existingMatchIndex = selectedPairs.value.findIndex(
-        pair => pair.id === item1.id || pair.matchId === item2.id
-      );
-      
-      if (existingMatchIndex !== -1) {
-        selectedPairs.value.splice(existingMatchIndex, 1);
-      }
-      
-      // Yeni eşleştirmeyi ekle
-      selectedPairs.value.push({
-        id: item1.id,
-        matchId: item2.id
+    
+    // Bir seçenek seç
+    const selectOption = (option) => {
+      selectedOption.value = option.name;
+      exercise.updateCheckButton(true);
+    };
+    
+    // Cevabı kontrol et
+    const checkAnswer = () => {
+      const isCorrect = selectedOption.value === correctOption.value;
+      return exercise.checkAnswer({
+        isCorrect,
+        userAnswer: selectedOption.value,
+        correctAnswer: correctOption.value
       });
-      
-      baseExercise.updateMainLayout(canCheck.value);
-    }
-
-    // Eşleştirmeyi kaldır
-    function removeMatch(pairId) {
-      const index = selectedPairs.value.findIndex(pair => pair.id === pairId);
-      if (index !== -1) {
-        selectedPairs.value.splice(index, 1);
-        baseExercise.updateMainLayout(canCheck.value);
-      }
-    }
-
-    // Cevabı kontrol etme
-    function checkAnswer() {
-      return baseExercise.checkAnswer({
-        selectedPairs: selectedPairs.value,
-        correctPairs: window.currentExercise.correctPairs
-      });
-    }
-
-    // Egzersizi sıfırlama
-    function reset() {
-      selectedPairs.value = [];
-      baseExercise.reset();
-    }
-
+    };
+    
+    // Sonuç içeriğini oluştur
+    const renderResultContent = (isCorrect) => {
+      return exercise.renderResultContent(isCorrect, correctOption.value);
+    };
+    
+    // Sonraki egzersiz
+    const onContinue = exercise.onContinue;
+    
     return {
-      ...baseExercise,
-      selectedPairs,
-      canCheck,
-      matchItems,
-      removeMatch,
+      // State
+      questionImageUrl,
+      options,
+      selectedOption,
+      
+      // Methods
+      init,
+      selectOption,
       checkAnswer,
-      reset
+      onContinue,
+      renderResultContent
     };
   };
 
-  // Global olarak egzersiz tanımını kaydet
-  if (window.exerciseRegistry) {
-    window.exerciseRegistry.register(exerciseInfo, validatePictureMatch);
+  // Egzersiz türünü global olarak kaydet (eğer kaydedilmemişse)
+  if (window.exerciseTypes && !window.exerciseTypes.find(e => e.id === 'picture-match')) {
+    window.exerciseTypes.push({
+      id: 'picture-match',
+      name: 'Resim Eşleştirme',
+      description: 'Verilen görüntüye uygun kelimeyi seçin',
+      component: 'PictureMatchExercise',
+      icon: 'fa-solid fa-image'
+    });
   }
 })();

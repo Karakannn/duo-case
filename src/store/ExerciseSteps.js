@@ -4,7 +4,7 @@
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
     // WordMatch Egzersizi Örneği
-    {
+   /*  {
       type: 'word-match',
       id: 1,
       question: {
@@ -12,11 +12,27 @@
         options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
         correctOption: 'Merhaba'
       }
+    }, */
+    {
+      type: 'picture-match',
+      id: 1,
+      stepProgress: 0, // İlerleme yüzdesi - 0'dan başlar
+      question: {
+        imageUrl: '/images/question/dog.jpg',
+        options: [
+          { name: 'milk', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/645fa42dcea02c7e2970a1285e321562' },
+          { name: 'coffee', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/6fd84b8a838c43c4a84b44b08b10177e' },
+          { name: 'tea', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/18a521f1507cb86689faa5b2e8277703' },
+        ],
+        correctOption: 'coffee'
+      }
     },
+
     // WordMatch Egzersizi Örneği 2
     {
       type: 'word-match',
       id: 2,
+      stepProgress: 20, // İlerleme yüzdesi
       question: {
         word: 'Goodbye',
         options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
@@ -27,6 +43,7 @@
     {
       type: 'word-builder',
       id: 3,
+      stepProgress: 40, // İlerleme yüzdesi
       question: {
         sentence: 'I ____ an apple',
         letters: ['a', 'e', 't', 'n', 'o', 'c', 'h', 'r', 'v', 'p', 'l'],
@@ -37,6 +54,7 @@
     {
       type: 'text-input',
       id: 4,
+      stepProgress: 60, // İlerleme yüzdesi
       question: {
         prompt: 'Çevir: "The cat is black"',
         correctAnswer: 'Kedi siyahtır'
@@ -46,6 +64,7 @@
     {
       type: 'fill-in-blank',
       id: 5,
+      stepProgress: 80, // İlerleme yüzdesi
       question: {
         sentence: 'I ___ to school every day.',
         options: ['go', 'went', 'going', 'gone'],
@@ -56,9 +75,15 @@
     {
       type: 'picture-match',
       id: 6,
+      stepProgress: 100, // İlerleme yüzdesi - %100 ile tamamlanır
       question: {
-        imageUrl: '/images/dog.jpg',
-        options: ['köpek', 'kedi', 'at', 'kuş'],
+        imageUrl: '/images/question/dog.jpg',
+        options: [
+          { name: 'köpek', imageUrl: '/images/options/dog.jpg' },
+          { name: 'kedi', imageUrl: '/images/options/cat.jpg' },
+          { name: 'at', imageUrl: '/images/options/horse.jpg' },
+          { name: 'kuş', imageUrl: '/images/options/bird.jpg' }
+        ],
         correctOption: 'köpek'
       }
     }

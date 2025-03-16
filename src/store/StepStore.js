@@ -30,7 +30,35 @@
         ? window.getActiveSequenceExercises() 
         : [...window.exerciseTypes];
       
-      // Sıralama dizisini kullanarak adım listesini oluştur
+      // Adımları exerciseStepsManager'dan al
+      const stepsWithProgress = [];
+      
+      if (window.exerciseStepsManager && window.exerciseStepsManager.getActiveSequenceSteps) {
+        const activeSteps = window.exerciseStepsManager.getActiveSequenceSteps();
+        
+        // Adım bilgilerini eşleştir
+        sequenceExercises.forEach((exercise, index) => {
+          // İlgili adımı bul
+          const matchingStep = activeSteps.find(step => step.type === exercise.id);
+          
+          stepsWithProgress.push({
+            id: index + 1,
+            name: exercise.id,
+            component: exercise.component,
+            title: exercise.name,
+            description: exercise.description,
+            icon: exercise.icon,
+            // Adımın kendi stepProgress değeri varsa onu kullan, yoksa otomatik hesapla
+            progressPercentage: matchingStep && matchingStep.stepProgress 
+              ? matchingStep.stepProgress 
+              : Math.round(((index + 1) / sequenceExercises.length) * 100)
+          });
+        });
+        
+        return stepsWithProgress;
+      }
+      
+      // Eğer exerciseStepsManager yoksa veya getActiveSequenceSteps metodu yoksa, eski yöntemi kullan
       return sequenceExercises.map((exercise, index) => ({
         id: index + 1,
         name: exercise.id,
