@@ -1,9 +1,10 @@
 <template>
-  <div 
-    class="word" 
-    :class="{ 'in-destination': location === 'destination' }"
-    @click="handleClick"
+  <div
     ref="wordElement"
+    class="word"
+    :class="{ 'in-origin': location === 'origin', 'in-destination': location === 'destination' }"
+    :style="{ transform: transformValue }"
+    @click="handleClick"
   >
     {{ text }}
   </div>
@@ -21,75 +22,100 @@ export default {
       type: Number,
       required: true
     },
-    destinationContainerRef: {
-      type: Object,
-      default: null
-    },
     initialLocation: {
       type: String,
       default: 'origin',
-      validator: (value) => ['origin', 'destination'].includes(value)
+      validator: value => ['origin', 'destination'].includes(value)
     },
-    wordPositions: {
-      type: Array,
-      default: () => []
+    destinationContainerRef: {
+      type: Object,
+      required: true
+    },
+    destinationInnerContainerRef: {
+      type: Object,
+      required: true
+    },
+    originInnerContainerRef: {
+      type: Object,
+      default: null
+    },
+    containerId: {
+      type: String,
+      required: true
+    },
+    holderId: {
+      type: String,
+      required: true
     }
   },
-  emits: ['click', 'location-change', 'word-positioned'],
   data() {
     return {
       location: this.initialLocation,
-      position: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0
-      },
+      position: { x: 0, y: 0, width: 0, height: 0 },
       originalPosition: null,
       isAnimating: false,
-      transformValue: ''
-    };
-  },
-  mounted() {
-    console.log(`[${this.index}] Word mounted with initialLocation: ${this.initialLocation}`);
-    
-    // Allow the DOM to render first
-    this.$nextTick(() => {
-      // Get initial position
-      this.updatePosition(true);
-      
-      // Save original position for transform calculations
-      this.originalPosition = { ...this.position };
-      console.log(`[${this.index}] Original position saved:`, this.originalPosition);
-      
-      // If starting in destination, apply transform
-      if (this.initialLocation === 'destination') {
-        console.log(`[${this.index}] Word starting at destination`);
-        this.moveToDestination();
-      }
-      
-      // Setup transition listener
-      this.$refs.wordElement.addEventListener('transitionend', this.handleTransitionEnd);
-    });
-    
-    // Handle window resize
-    window.addEventListener('resize', this.handleResize);
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize);
-    if (this.$refs.wordElement) {
-      this.$refs.wordElement.removeEventListener('transitionend', this.handleTransitionEnd);
+      transformValue: '',
+      originalParent: null,
+      originalIndex: null
     }
   },
+  mounted() {
+    // Store original parent container
+    this.originalParent = this.$el.parentElement;
+    
+    // Get the index among siblings
+    this.originalIndex = Array.from(this.originalParent.parentElement.children).indexOf(this.originalParent);
+    
+    // Initialize element after rendering
+    this.$nextTick(() => {
+      this.initializeElement();
+      this.updatePosition();
+      this.originalPosition = { ...this.position };
+    });
+    
+    // Add event listeners
+    window.addEventListener('resize', this.handleResize);
+    this.$el.addEventListener('transitionend', this.handleTransitionEnd);
+  },
+  beforeDestroy() {
+    // Remove event listeners
+    window.removeEventListener('resize', this.handleResize);
+    this.$el.removeEventListener('transitionend', this.handleTransitionEnd);
+  },
   watch: {
-    // Apply transform whenever it changes
     transformValue(newValue) {
-      if (this.$refs.wordElement) {
-        this.$refs.wordElement.style.transform = newValue;
+      // Emit animation start event when transform is applied
+      if (newValue && !this.isAnimating) {
+        this.$emit('animation-start', {
+          index: this.index,
+          location: this.location
+        });
       }
     }
   },
   methods: {
+    initializeElement() {
+      const rect = this.$el.getBoundingClientRect();
+      
+      // Set sizes for holder and container elements
+      if (this.holderId && this.containerId) {
+        const holder = document.getElementById(this.holderId);
+        const wordContainer = document.getElementById(this.containerId);
+        const wordWrapper = this.originalParent;
+        
+        if (holder && wordContainer && wordWrapper) {
+          const width = rect.width;
+          const height = rect.height;
+          
+          holder.style.width = `${width}px`;
+          holder.style.height = `${height}px`;
+          wordWrapper.style.width = `${width}px`;
+          wordWrapper.style.height = `${height}px`;
+          wordContainer.style.width = `${width}px`;
+          wordContainer.style.height = `${height}px`;
+        }
+      }
+    },
     updatePosition(skipEmit = false) {
       if (!this.$refs.wordElement) return;
       
@@ -101,8 +127,6 @@ export default {
         height: rect.height
       };
       
-      console.log(`[${this.index}] Position updated:`, this.position, `location: ${this.location}`);
-      
       // Emit position to parent
       if (!skipEmit) {
         this.$emit('word-positioned', {
@@ -113,27 +137,24 @@ export default {
         });
       }
     },
+    setPositionX(x) {
+      if (this.position) {
+        this.position.x = x;
+      }
+    },
+    processQueuedClick(onComplete) {
+      this.handleClick();
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    },
     handleClick() {
-      console.log(`[${this.index}] Word CLICKED, current location: ${this.location}, isAnimating: ${this.isAnimating}`);
-      
       // Ignore clicks during animation
-      if (this.isAnimating) {
-        console.log(`[${this.index}] Animation in progress, ignoring click`);
-        return;
-      }
+      if (this.isAnimating) return;
       
-      // Set animating flag
+      // Set animating flag and toggle location
       this.isAnimating = true;
-      console.log(`[${this.index}] Setting isAnimating = true`);
-      
-      // Toggle location
-      if (this.location === 'origin') {
-        console.log(`[${this.index}] Moving TO destination`);
-        this.moveToDestination();
-      } else {
-        console.log(`[${this.index}] Moving BACK TO origin`);
-        this.moveToOrigin();
-      }
+      this.location === 'origin' ? this.moveToDestination() : this.moveToOrigin();
       
       // Emit click event
       this.$emit('click', {
@@ -145,161 +166,160 @@ export default {
     handleTransitionEnd(event) {
       // Only care about transform property
       if (event.propertyName === 'transform') {
-        console.log(`[${this.index}] Transition ENDED for transform`);
-        
-        // Clear animating flag
         this.isAnimating = false;
-        console.log(`[${this.index}] Animation completed, isAnimating = false`);
-        
-        // Update position
         this.updatePosition();
       }
     },
     handleResize() {
-      console.log(`[${this.index}] Window resized`);
-      
-      // Update position measurements
       this.updatePosition(true);
       
-      // Update original position if we're currently at origin
+      // Update original position if at origin
       if (this.location === 'origin') {
         this.originalPosition = { ...this.position };
-        console.log(`[${this.index}] Original position updated on resize:`, this.originalPosition);
-      }
-      
-      // Reapply transform if we're at destination
-      if (this.location === 'destination') {
+      } else if (this.location === 'destination') {
         this.moveToDestination();
       }
     },
     moveToDestination() {
-      if (!this.destinationContainerRef || !this.originalPosition) {
-        console.error(`[${this.index}] Missing references`);
-        this.isAnimating = false;
-        return;
+      const element = this.$el;
+      const destinationContainer = this.destinationContainerRef;
+      const destinationInnerContainer = this.destinationInnerContainerRef;
+      
+      if (!destinationContainer || !destinationInnerContainer) return;
+      
+      this.isAnimating = true;
+      
+      // Get current position and set holder dimensions
+      const originalRect = element.getBoundingClientRect();
+      const holderElement = document.getElementById(this.holderId);
+      if (holderElement) {
+        holderElement.style.width = `${originalRect.width}px`;
+        holderElement.style.height = `${originalRect.height}px`;
       }
       
-      // Get destination container position
-      const destContainer = this.destinationContainerRef;
-      const destRect = destContainer.getBoundingClientRect();
+      // Calculate target position
+      const destinationWords = Array.from(destinationInnerContainer.children);
+      let targetX, targetY;
       
-      // Set a default position (will be updated by repositionDestinationWords in useWordBuilder)
-      let destX = destRect.x + 10; // Add some padding
+      if (destinationWords.length === 0) {
+        // Position at the start if no words in destination
+        const destinationRect = destinationInnerContainer.getBoundingClientRect();
+        targetX = destinationRect.x + 10;
+        targetY = destinationRect.y + 10;
+      } else {
+        // Position after the last word
+        const lastWord = destinationWords[destinationWords.length - 1];
+        const lastWordRect = lastWord.getBoundingClientRect();
+        
+        targetX = lastWordRect.x + lastWordRect.width + 10;
+        targetY = lastWordRect.y;
+      }
       
-      // Calculate Y position (center vertically)
-      const destY = destRect.y + (destRect.height / 2) - (this.position.height / 2);
-      
-      // Calculate transform offsets
-      const xOffset = destX - this.originalPosition.x;
-      const yOffset = destY - this.originalPosition.y;
-      
-      console.log(`[${this.index}] Setting transform from (${this.originalPosition.x}, ${this.originalPosition.y}) to (${destX}, ${destY})`);
-      console.log(`[${this.index}] Transform offsets: X=${xOffset}, Y=${yOffset}`);
-      
-      // Update location first (for CSS class)
+      // Calculate offsets and update location
+      const xOffset = targetX - originalRect.x;
+      const yOffset = targetY - originalRect.y;
       this.location = 'destination';
-      
-      // Emit location change
-      this.emitLocationChange();
-      
-      // Set transform (will apply via watcher)
       this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
+      
+      // Handle transition end
+      const handleTransitionComplete = (e) => {
+        if (e.propertyName === 'transform') {
+          element.removeEventListener('transitionend', handleTransitionComplete);
+          this.transformValue = '';
+          destinationInnerContainer.appendChild(element);
+          this.isAnimating = false;
+        }
+      };
+      
+      element.addEventListener('transitionend', handleTransitionComplete);
+      this.emitLocationChange();
     },
     moveToOrigin() {
-      console.log(`[${this.index}] Moving back to origin position`);
+      const element = this.$el;
+      const holder = document.getElementById(this.holderId);
       
-      // Update location first (for CSS class)
+      if (!holder) return;
+      
+      this.isAnimating = true;
+      
+      // Calculate target position
+      const currentRect = element.getBoundingClientRect();
+      const holderRect = holder.getBoundingClientRect();
+      const targetX = holderRect.x;
+      const targetY = holderRect.y;
+      
+      // Calculate offsets and update location
+      const xOffset = targetX - currentRect.x;
+      const yOffset = targetY - currentRect.y;
       this.location = 'origin';
+      this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
       
-      // Emit location change
+      // Handle transition end
+      const handleTransitionComplete = (e) => {
+        if (e.propertyName === 'transform') {
+          element.removeEventListener('transitionend', handleTransitionComplete);
+          this.transformValue = '';
+          
+          // Move back to original container
+          const originalContainer = document.getElementById(this.containerId);
+          if (originalContainer) {
+            const wordWrapper = originalContainer.querySelector('.word-wrapper');
+            if (wordWrapper) {
+              wordWrapper.appendChild(element);
+            } else {
+              originalContainer.appendChild(element);
+            }
+          }
+          
+          this.isAnimating = false;
+        }
+      };
+      
+      element.addEventListener('transitionend', handleTransitionComplete);
       this.emitLocationChange();
-      
-      // Reset transform to origin position (will apply via watcher)
-      this.transformValue = 'translate(0px, 0px)';
     },
     emitLocationChange() {
-      console.log(`[${this.index}] Location CHANGED to: ${this.location}`);
-      
       this.$emit('location-change', {
         index: this.index,
         location: this.location,
         position: this.position
       });
-    },
-    setPositionX(x) {
-      if (!this.originalPosition) return;
-      
-      // Calculate new transform based on x
-      const destY = this.destinationContainerRef ? 
-        this.destinationContainerRef.getBoundingClientRect().y + 
-        (this.destinationContainerRef.getBoundingClientRect().height / 2) - 
-        (this.position.height / 2) : 
-        this.position.y;
-      
-      const xOffset = x - this.originalPosition.x;
-      const yOffset = destY - this.originalPosition.y;
-      
-      console.log(`[${this.index}] Repositioning to X=${x}, offset=${xOffset}`);
-      
-      // Update transform
-      this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
-      
-      // Update position for tracking
-      this.position.x = x;
-    },
-    processQueuedClick(onComplete = null) {
-      if (this.isAnimating) return;
-      
-      console.log(`[${this.index}] Processing queued click`);
-      this.isAnimating = true;
-      
-      if (this.location === 'origin') {
-        this.moveToDestination();
-      } else {
-        this.moveToOrigin();
-      }
-      
-      // If callback provided, call it after animation completes
-      if (onComplete && typeof onComplete === 'function') {
-        const handleTransitionComplete = (event) => {
-          if (event.propertyName === 'transform') {
-            this.$refs.wordElement.removeEventListener('transitionend', handleTransitionComplete);
-            onComplete();
-          }
-        };
-        
-        this.$refs.wordElement.addEventListener('transitionend', handleTransitionComplete);
-      }
-    },
+    }
   }
 }
 </script>
 
 <style scoped>
 .word {
-  position: relative;
   display: inline-block;
-  border: 1px solid var(--grey-color);
-  background-color: white;
-  margin: 0 0.2em;
-  padding: 0.5em 1em;
+  padding: 10px 15px;
+  margin: 0;
+  background-color: #fff;
+  border: 2px solid #58cc02;
   border-radius: var(--border-radius);
-  box-shadow: 0px 3px 0px 0px var(--grey-color);
-  transition: transform 0.3s ease-out;
+  font-size: 16px;
+  font-weight: bold;
+  color: #4b4b4b;
   cursor: pointer;
+  text-align: center;
+  user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  position: relative;
   z-index: 1;
-  font-size: 1.2em;
-  font-weight: 400;
-  color: var(--text-color);
-  will-change: transform;
+  white-space: nowrap;
 }
 
-.word:active {
-  transform: translate(0, 2px);
-  box-shadow: none;
+.word:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
 }
 
-.in-destination {
-  box-shadow: 0px 2px 0px 0px var(--darker-grey-color);
+.word.in-origin {
+  background-color: #fff;
+}
+
+.word.in-destination {
+  background-color: #fff;
 }
 </style>

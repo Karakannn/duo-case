@@ -19,7 +19,6 @@
     const correctAnswer = ref('');
     const wordList = ref([]);
     const userAnswer = ref('');
-    const exerciseData = exercise.exerciseData;
     const title = ref('Write this in Spanish');
     const word = ref('');
     
@@ -50,7 +49,6 @@
         if (questionData.word) {
           word.value = questionData.word;
         } else {
-          // Default to the first word of the sentence as fallback
           word.value = wordList.value.length > 0 ? wordList.value[0] : "Word";
         }
         
@@ -63,11 +61,6 @@
           exerciseInitialized.value = true;
         });
       }
-    };
-    
-    // Prepare current words for destination
-    const getCurrentWords = () => {
-      return wordList.value;
     };
     
     // Determine if a word should start at origin or destination
@@ -86,7 +79,6 @@
       // Get the next word to process
       const nextIndex = clickQueue.value.shift();
       
-      // The component reference needs to be passed from the Vue component
       return {
         nextIndex,
         onAnimationComplete: () => {
@@ -138,13 +130,11 @@
 
     // Handle animation start
     const handleAnimationStart = (wordData) => {
-      const { index } = wordData;
       isAnyWordAnimating.value = true;
     };
 
     // Handle animation end
     const handleAnimationEnd = (wordData) => {
-      const { index } = wordData;
       isAnyWordAnimating.value = false;
 
       // Process next in queue
@@ -219,10 +209,9 @@
       const containerRect = containerRef.value.getBoundingClientRect();
       const containerLeft = containerRect.left;
 
-      // Increased gap between words
-      const wordGap = 20; // Increased from 10 to 20 for more space between words
+      // Gap between words
+      const wordGap = 20;
 
-      // Instead of sorting by timestamp, we'll position words based on their index in the array
       // This way, new words are always added to the right (since we push to the array)
       const wordsToPosition = [...destinationWords];
       
@@ -230,9 +219,9 @@
       let currentX = containerLeft + wordGap;
       
       // Calculate positions for all words
-      const positionedWords = wordsToPosition.map((word, arrayIndex) => {
-        // Calculate width based on word length with more padding
-        const wordWidth = word.word.length * 12 + 24; // Increased multiplier and padding
+      const positionedWords = wordsToPosition.map((word) => {
+        // Calculate width based on word length with padding
+        const wordWidth = word.word.length * 12 + 24;
         
         // Create new position
         const newPosition = { 
@@ -242,7 +231,7 @@
           height: 30 // Approximate height
         };
         
-        // Update currentX for next word with more spacing
+        // Update currentX for next word
         currentX += wordWidth + wordGap;
         
         // Return updated word data
@@ -271,44 +260,24 @@
       });
     };
     
-    // Render result content
-    const renderResultContent = (isCorrect) => {
-      return exercise.renderResultContent(isCorrect, correctAnswer.value);
-    };
-    
-    // Next exercise
-    const onContinue = exercise.onContinue;
-    
     return {
       // State
       english,
       correctAnswer,
       wordList,
       userAnswer,
-      exerciseData,
       title,
       word,
-      destinationWords,
-      wordPositionsArray,
-      isAnyWordAnimating,
-      clickQueue,
-      exerciseInitialized,
       
       // Methods
       init,
-      getCurrentWords,
       getInitialLocation,
-      processClickQueue,
       handleWordClick,
       handleAnimationStart,
       handleAnimationEnd,
       handleWordPositioned,
       handleLocationChange,
-      repositionDestinationWords,
-      updateUserAnswer,
-      checkAnswer,
-      onContinue,
-      renderResultContent
+      checkAnswer
     };
   };
 })();

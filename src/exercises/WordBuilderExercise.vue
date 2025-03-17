@@ -2,64 +2,89 @@
   <div class="exercise-component">
     <div class="wrapper">
       <h1 class="exercise-title">{{ title }}</h1>
-
-      <!-- English sentence to translate -->
-      <div class="english-sentence">
-        {{ englishSentence }}
-      </div>
-
+      
       <div class="top-container">
         <div class="character-container">
           <div class="speech-bubble-container">
             <div class="speech-bubble">
-              <span class="word-text">{{ word }}</span>
+              <div class="speech-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32">
+                  <path class="speech-icon-path" d="M0 16 L16 0 L16 32 Z" />
+                </svg>
+              </div>
+              <div class="word-text">{{ englishSentence }}</div>
             </div>
-            <svg class="speech-icon" height="20" viewBox="0 0 18 20">
-              <path class="speech-icon-path"
-                d="M2.00358 19.0909H18V0.909058L0.624575 15.9561C-0.682507 17.088 0.198558 19.0909 2.00358 19.0909Z">
-              </path>
-              <path class="speech-icon-path" clip-rule="evenodd"
-                d="M18 2.48935V0L0.83037 15.6255C-0.943477 17.2398 0.312833 20 2.82143 20H18V18.2916H16.1228H2.82143C1.98523 18.2916 1.56646 17.3716 2.15774 16.8335L16.1228 4.12436L18 2.48935Z"
-                fill-rule="evenodd"></path>
-            </svg>
           </div>
         </div>
       </div>
-
+      
       <div class="bottom-container">
-        <div ref="destinationContainer" class="destination-container">
+        <div 
+          ref="destinationContainer" 
+          class="destination-container"
+        >
+          <div 
+            ref="destinationInnerContainer" 
+            class="destination-inner-container"
+          ></div>
         </div>
-        <div ref="originContainer" class="origin-container">
-          <Word v-for="(word, index) in wordList" :key="index" :index="index" :text="word"
-            :destination-container-ref="destinationContainer" :initial-location="getInitialLocation(index)"
-            @click="handleWordClick" @word-positioned="handleWordPositioned" @location-change="handleLocationChange"
-            @animation-start="handleAnimationStart" @animation-end="handleAnimationEnd" ref="wordComponents" />
+        
+        <div 
+          ref="originContainer" 
+          class="origin-container"
+        >
+          <div 
+            ref="originInnerContainer" 
+            class="origin-inner-container"
+          >
+            <div 
+              v-for="(word, index) in wordList" 
+              :key="index" 
+              :id="`word-container-${index}`" 
+              class="word-container"
+            >
+              <div class="word-holder" :id="`word-holder-${index}`"></div>
+              <div class="word-wrapper">
+                <Word 
+                  :ref="el => { if (el) wordComponents[index] = el }"
+                  :text="word" 
+                  :index="index" 
+                  :initial-location="getInitialLocation(index)" 
+                  :holder-id="`word-holder-${index}`" 
+                  :container-id="`word-container-${index}`" 
+                  :destination-container-ref="destinationContainer" 
+                  :destination-inner-container-ref="destinationInnerContainer" 
+                  :origin-inner-container-ref="originInnerContainer"
+                  @click="handleWordClick" 
+                  @word-positioned="handleWordPositioned" 
+                  @location-change="handleLocationChange" 
+                  @animation-start="handleAnimationStart" 
+                  @animation-end="handleAnimationEnd" 
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script>
-// Use global Vue
-const { ref, reactive, computed, onMounted, watch, nextTick } = Vue;
+import { ref, onMounted, nextTick } from 'vue';
+import Word from '../components/words/Word.vue';
 
 export default {
   name: 'WordBuilderExercise',
   components: {
-    Word: Vue.defineAsyncComponent(() =>
-      window["vue3-sfc-loader"].loadModule(
-        '/src/components/words/Word.vue',
-        window.sfcOptions
-      )
-    )
+    Word
   },
   setup() {
-    // Container references
     const destinationContainer = ref(null);
     const originContainer = ref(null);
     const wordComponents = ref([]);
+    const destinationInnerContainer = ref(null);
+    const originInnerContainer = ref(null);
 
     // Use the enhanced wordBuilder composable
     const wordBuilder = window.useWordBuilder({});
@@ -76,9 +101,8 @@ export default {
         const { nextIndex, onAnimationComplete } = result;
 
         // Find the word component by index and trigger animation
-        const component = wordComponents.value ?
-          wordComponents.value.find(c => c.index === nextIndex) : null;
-
+        const component = wordComponents.value[nextIndex];
+        
         if (component) {
           component.processQueuedClick(onAnimationComplete);
         }
@@ -100,8 +124,7 @@ export default {
           repositionResult.forEach(wordData => {
             const { index, position } = wordData;
             // Find the component by index
-            const component = wordComponents.value ?
-              wordComponents.value.find(c => c.index === index) : null;
+            const component = wordComponents.value[index];
 
             if (component && position) {
               // Update position directly on the component
@@ -148,6 +171,8 @@ export default {
       destinationContainer,
       originContainer,
       wordComponents,
+      destinationInnerContainer,
+      originInnerContainer,
 
       // Expose methods from the wordBuilder composable
       getInitialLocation: wordBuilder.getInitialLocation,
@@ -262,13 +287,35 @@ export default {
   border-bottom: 3px solid var(--color-swan);
   width: 100%;
   height: 60px;
+  position: relative;
+}
+
+.destination-inner-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .origin-container {
   width: 100%;
+  position: relative;
+  min-height: 120px;
+}
+
+.origin-inner-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 15px 0;
 }
 
 .check-button {
@@ -316,5 +363,29 @@ export default {
   font-weight: 500;
   line-height: 2rem;
   margin: 1em 0;
+}
+
+.word-container {
+  position: relative;
+  display: inline-block;
+  margin: 0 2px;
+  padding: 0;
+}
+
+.word-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.word-holder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 2px dashed #ccc;
+  border-radius: var(--border-radius);
+  background-color: transparent;
+  z-index: 0;
 }
 </style>
