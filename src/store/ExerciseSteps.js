@@ -1,13 +1,16 @@
 // ExerciseSteps.js - Egzersiz adımlarını merkezileştiren yapı
-(function() {
+(function () {
   // Tüm egzersiz adımlarını içeren dizi
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
     // WordBuilder Egzersizi Örneği
+
+     // Matching Egzersizi Örneği
+   
     {
       type: 'word-match',
       id: 1, // ID'yi 3'e değiştirdim
-      stepProgress: 40, // İlerleme yüzdesini güncelledim
+      stepProgress: 20, // İlerleme yüzdesini güncelledim
       question: {
         word: 'Goodbye',
         options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
@@ -15,8 +18,36 @@
       }
     },
     {
+      type: 'matching',
+      id: 2,
+      stepProgress: 0, // İlerleme yüzdesi
+      question: {
+        leftItems: [
+          { id: 1, text: "elma" },
+          { id: 2, text: "araba" },
+          { id: 3, text: "ev" },
+          { id: 4, text: "kitap" },
+          { id: 5, text: "bilgisayar" }
+        ],
+        rightItems: [
+          { id: 1, text: "apple" },
+          { id: 2, text: "car" },
+          { id: 3, text: "house" },
+          { id: 4, text: "book" },
+          { id: 5, text: "computer" }
+        ],
+        correctMatches: [
+          { leftId: 1, rightId: 1 },
+          { leftId: 2, rightId: 2 },
+          { leftId: 3, rightId: 3 },
+          { leftId: 4, rightId: 4 },
+          { leftId: 5, rightId: 5 }
+        ]
+      }
+    },
+    {
       type: 'word-builder',
-      id: 2, // ID'yi 1 olarak değiştirdim, böylece ilk sırada başlar
+      id: 3, // ID'yi 1 olarak değiştirdim, böylece ilk sırada başlar
       stepProgress: 0, // İlerleme yüzdesini sıfırdan başlattım
       question: {
         text: 'Yeni bir kitap aldım',
@@ -29,8 +60,8 @@
     // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',
-      id: 3, // ID'yi 2'ye değiştirdim
-      stepProgress: 20, // İlerleme yüzdesini güncelledim
+      id: 4, // ID'yi 2'ye değiştirdim
+      stepProgress: 30, // İlerleme yüzdesini güncelledim
       question: {
         imageUrl: '/images/question/dog.jpg',
         options: [
@@ -41,29 +72,19 @@
         correctOption: 'coffee'
       }
     },
-    // WordMatch Egzersizi Örneği
-   
-    // TextInput Egzersizi Örneği
-    {
-      type: 'text-input',
-      id: 4,
-      stepProgress: 60, // İlerleme yüzdesi
-      question: {
-        prompt: 'Çevir: "The cat is black"',
-        correctAnswer: 'Kedi siyahtır'
-      }
-    },
+
     // FillInBlank Egzersizi Örneği
     {
       type: 'fill-in-blank',
       id: 5,
-      stepProgress: 80, // İlerleme yüzdesi
+      stepProgress: 40, // İlerleme yüzdesi
       question: {
         sentence: 'I ___ to school every day.',
         options: ['go', 'went', 'going', 'gone'],
         correctAnswer: 'go'
       }
     },
+   
     // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',
@@ -82,22 +103,15 @@
     }
   ];
 
-  // Adım sıralamaları - farklı egzersiz dizileri oluşturmak için
   const exerciseSequences = {
-    // Varsayılan sıralama - tüm adımlar
-    default: [1, 2, 3, 4, 5, 6], // Sıralamayı yeni ID'lere göre güncelledim
-    // Sadece kelime eşleştirme ve kelime oluşturma
-    wordFocus: [1, 3], // Sıralamayı yeni ID'lere göre güncelledim
-    // Sadece cümle odaklı egzersizler
+    default: [1, 2, 3, 4, 5, 6],
+    wordFocus: [1, 3],
     sentenceFocus: [4, 5],
-    // Özel sıralama örneği
     custom: [3, 4, 6]
   };
 
-  // Aktif sıralama
   let activeSequence = 'default';
 
-  // Adımları ID'lerine göre almak için yardımcı fonksiyon
   function getStepById(stepId) {
     return exerciseSteps.find(step => step.id === stepId) || null;
   }

@@ -15,50 +15,41 @@
       <div class="match-grid-container">
         <!-- Sol taraf (sorular/ifadeler) -->
         <div class="left-column">
-          <div 
+          <button 
             v-for="(item, index) in leftItems" 
             :key="`left-${index}`"
             class="match-item"
             :class="{ 
               'selected': selectedLeft === index,
-              'matched': isItemMatched('left', index)
+              'matched': matchedItems.left.includes(index),
+              'correct-match': correctMatches.includes(index),
+              'wrong-match': wrongMatches.left.includes(index)
             }"
             @click="selectItem('left', index)"
+            :disabled="matchedItems.left.includes(index) || isAnimating"
           >
             {{ item.text }}
-          </div>
+          </button>
         </div>
         
         <!-- Sağ taraf (karşılıklar/cevaplar) -->
         <div class="right-column">
-          <div 
+          <button 
             v-for="(item, index) in rightItems" 
             :key="`right-${index}`"
             class="match-item"
             :class="{ 
               'selected': selectedRight === index,
-              'matched': isItemMatched('right', index)
+              'matched': matchedItems.right.includes(index),
+              'correct-match': correctMatches.includes(index),
+              'wrong-match': wrongMatches.right.includes(index)
             }"
             @click="selectItem('right', index)"
+            :disabled="matchedItems.right.includes(index) || isAnimating"
           >
             {{ item.text }}
-          </div>
+          </button>
         </div>
-      </div>
-      
-      <!-- Eşleştirme Çizgileri -->
-      <div class="match-lines">
-        <svg width="100%" height="100%" class="match-lines-svg">
-          <line 
-            v-for="(match, index) in matches" 
-            :key="`line-${index}`"
-            :x1="0" 
-            :y1="getPositionY('left', match.leftIndex)" 
-            :x2="100" 
-            :y2="getPositionY('right', match.rightIndex)"
-            class="match-line"
-          />
-        </svg>
       </div>
     </div>
   </div>
@@ -70,196 +61,176 @@ export default {
   components: {},
   emits: ['complete'],
   setup(props, { emit }) {
-    const { ref, computed, onMounted, watch } = Vue;
+    const { ref, computed, onMounted, watch, nextTick } = Vue;
     
     // Gerekli kompozisyonu içe aktar
-    const matchExercise = window.usePictureMatch();
-    const exerciseBase = window.useExercise({ exerciseName: 'matching' });
+    const matchingExercise = window.useMatching();
     
     // State
     const title = ref("Eşleştirmeleri tamamlayın");
     const audioWord = ref(null);  // Eğer ses çalınacaksa
     
-    // Eşleştirilecek öğeler
-    const leftItems = ref([]);
-    const rightItems = ref([]);
-    
-    // Doğru eşleştirmeler (id bazında)
-    const correctMatches = ref([]);
+    // Eşleştirilecek öğeler - kompozisyondan al
+    const leftItems = matchingExercise.leftItems;
+    const rightItems = matchingExercise.rightItems;
     
     // Kullanıcının seçimleri
     const selectedLeft = ref(null);
     const selectedRight = ref(null);
     
-    // Yapılan eşleştirmeler - state'i kompozisyondan kullan
-    const matches = ref([]);
+    // Eşleştirilmiş öğeler
+    const matchedItems = ref({
+      left: [],
+      right: []
+    });
     
-    // Mevcut adım bilgisini yükle
-    const loadCurrentStepData = () => {
-      const stepData = exerciseBase.getCurrentStepData();
-      
-      if (stepData && stepData.type === 'matching' && stepData.question) {
-        // Adım verisinden soru bilgisini al
-        if (stepData.question.audioWord) {
-          audioWord.value = stepData.question.audioWord;
-        } else {
-          audioWord.value = null;
-        }
-        
-        // Eşleştirme öğelerini yükle
-        if (stepData.question.leftItems && stepData.question.rightItems) {
-          leftItems.value = stepData.question.leftItems;
-          rightItems.value = stepData.question.rightItems;
-          
-          // Doğru eşleştirmeleri belirle
-          if (stepData.question.correctMatches) {
-            correctMatches.value = stepData.question.correctMatches;
-          } else {
-            // Eğer doğru eşleştirmeler belirtilmemişse, varsayılan olarak aynı index'leri eşleştir
-            correctMatches.value = leftItems.value.map((item, index) => ({
-              leftId: item.id,
-              rightId: rightItems.value[index].id
-            }));
-          }
-        } else {
-          // Varsayılan değerleri kullan
-          loadDefaultData();
-        }
-        
-        console.log('Matching exercise loaded with data:', stepData);
-      } else {
-        // Adım verisi bulunamazsa varsayılan değerleri kullan
-        loadDefaultData();
-        console.warn('No matching step data found for Matching, using default values');
-      }
-      
-      // Bileşen durumunu sıfırla
-      selectedLeft.value = null;
-      selectedRight.value = null;
-      matches.value = [];
-      
-      // Egzersiz için global değişkenleri güncelle
-      window.currentExercise = {
-        correctPairs: formatCorrectPairs()
-      };
-    };
+    // Doğru eşleşmeler (geçici olarak gösterilecek)
+    const correctMatches = ref([]);
     
-    // Varsayılan değerleri yükle
-    const loadDefaultData = () => {
-      leftItems.value = [
-        { id: 1, text: "bir" },
-        { id: 2, text: "dört" },
-        { id: 3, text: "otuz" },
-        { id: 4, text: "otobüs" },
-        { id: 5, text: "kedi" }
-      ];
-      
-      rightItems.value = [
-        { id: 1, text: "one" },
-        { id: 2, text: "four" },
-        { id: 3, text: "thirty" },
-        { id: 4, text: "bus" },
-        { id: 5, text: "cat" }
-      ];
-      
-      correctMatches.value = [
-        { leftId: 1, rightId: 1 },
-        { leftId: 2, rightId: 2 },
-        { leftId: 3, rightId: 3 },
-        { leftId: 4, rightId: 4 },
-        { leftId: 5, rightId: 5 }
-      ];
-    };
+    // Yanlış eşleşmeler (geçici olarak gösterilecek)
+    const wrongMatches = ref({
+      left: [],
+      right: []
+    });
     
-    // İlerleme durumu
-    const isComplete = computed(() => matches.value.length === leftItems.value.length);
+    // Animasyon durumu
+    const isAnimating = ref(false);
     
-    // Bir öğenin eşleştirilip eşleştirilmediğini kontrol et
-    const isItemMatched = (side, index) => {
-      if (side === 'left') {
-        return matches.value.some(match => match.leftIndex === index);
-      } else {
-        return matches.value.some(match => match.rightIndex === index);
-      }
-    };
-    
-    // Bir öğe seçildiğinde
+    // Bir öğeyi seç
     const selectItem = (side, index) => {
-      // Eğer öğe zaten eşleştirilmişse, işlem yapma
-      if (side === 'left' && isItemMatched('left', index)) return;
-      if (side === 'right' && isItemMatched('right', index)) return;
+      // Eğer animasyon çalışıyorsa, işlem yapma
+      if (isAnimating.value) return;
       
+      // Eğer öğe zaten eşleştirilmişse, işlem yapma
+      if (side === 'left' && matchedItems.value.left.includes(index)) return;
+      if (side === 'right' && matchedItems.value.right.includes(index)) return;
+      
+      // Eğer zaten bir seçim yapılmışsa ve aynı taraftan başka bir öğe seçiliyorsa, önceki seçimi temizle
+      if (side === 'left' && selectedLeft.value !== null) {
+        selectedLeft.value = index;
+        return;
+      }
+      
+      if (side === 'right' && selectedRight.value !== null) {
+        selectedRight.value = index;
+        return;
+      }
+      
+      // Seçimi kaydet
       if (side === 'left') {
         selectedLeft.value = index;
       } else {
         selectedRight.value = index;
       }
       
-      // Eğer her iki taraftan da bir öğe seçilmişse, eşleştirme yap
+      // Eğer her iki taraftan da bir öğe seçilmişse, eşleştirmeyi kontrol et
       if (selectedLeft.value !== null && selectedRight.value !== null) {
-        // Eşleştirmeyi kaydet
-        const newMatch = {
-          leftIndex: selectedLeft.value,
-          rightIndex: selectedRight.value,
-          leftId: leftItems.value[selectedLeft.value].id,
-          rightId: rightItems.value[selectedRight.value].id
-        };
+        const leftId = leftItems.value[selectedLeft.value].id;
+        const rightId = rightItems.value[selectedRight.value].id;
         
-        matches.value.push(newMatch);
+        // Eşleştirmeyi kontrol et
+        const isCorrect = matchingExercise.checkPair(leftId, rightId);
         
-        // Kompozisyona bildir
-        matchExercise.matchItems(
-          { id: newMatch.leftId }, 
-          { id: newMatch.rightId }
-        );
+        // Animasyon başlat
+        isAnimating.value = true;
         
-        // Seçimleri sıfırla
-        selectedLeft.value = null;
-        selectedRight.value = null;
+        if (isCorrect) {
+          // Doğru eşleşme - yeşil border göster
+          correctMatches.value = [selectedLeft.value, selectedRight.value];
+          
+          // Eşleştirilmiş öğeleri geçici olarak kaydet
+          const tempLeftIndex = selectedLeft.value;
+          const tempRightIndex = selectedRight.value;
+          
+          // Eğer bu son eşleşme olacaksa, hemen kontrol butonunu aktif et
+          if (matchedItems.value.left.length === leftItems.value.length - 1) {
+            if (window.mainLayout) {
+              window.mainLayout.canCheck = true;
+            }
+          }
+          
+          // 1 saniye sonra doğru eşleşmeyi kaydet ve seçimleri temizle
+          setTimeout(() => {
+            // Eşleştirilmiş öğeleri kaydet
+            matchedItems.value.left.push(tempLeftIndex);
+            matchedItems.value.right.push(tempRightIndex);
+            
+            // Doğru eşleşme göstergesini temizle
+            correctMatches.value = [];
+            
+            // Seçimleri temizle
+            selectedLeft.value = null;
+            selectedRight.value = null;
+            
+            // Eşleştirmeyi composable'a bildir
+            matchingExercise.matchItems(
+              { id: leftId }, 
+              { id: rightId }
+            );
+            
+            // Animasyon bitti
+            isAnimating.value = false;
+          }, 1000);
+        } else {
+          // Yanlış eşleşme - kırmızı border göster
+          wrongMatches.value.left.push(selectedLeft.value);
+          wrongMatches.value.right.push(selectedRight.value);
+          
+          // 1 saniye sonra yanlış eşleşmeyi temizle
+          setTimeout(() => {
+            // Yanlış eşleşme göstergesini temizle
+            wrongMatches.value.left = [];
+            wrongMatches.value.right = [];
+            
+            // Seçimleri temizle
+            selectedLeft.value = null;
+            selectedRight.value = null;
+            
+            // Can azalt
+            matchingExercise.decreaseHeart();
+            
+            // Animasyon bitti
+            isAnimating.value = false;
+          }, 1000);
+        }
       }
     };
     
-    // SVG çizgisi için Y pozisyonu hesapla
-    const getPositionY = (side, index) => {
-      const itemHeight = 60; // px
-      const itemMargin = 10; // px
-      return (index * (itemHeight + itemMargin)) + (itemHeight / 2);
-    };
-    
-    // Doğru eşleştirmeleri formatla
-    const formatCorrectPairs = () => {
-      return correctMatches.value.map(match => ({
-        id: match.leftId,
-        matchId: match.rightId
-      }));
+    // Tüm öğeler eşleştirildi mi kontrol et
+    const checkAllMatched = () => {
+      if (matchedItems.value.left.length === leftItems.value.length) {
+        // Tüm öğeler eşleştirildi, kontrol butonunu etkinleştir
+        if (window.mainLayout) {
+          window.mainLayout.canCheck = true;
+        }
+      }
     };
     
     // Initialize
     onMounted(() => {
-      // Adım verisini yükle
-      loadCurrentStepData();
-      
-      // Kompozisyonu sıfırla
-      matchExercise.reset();
+      // Kompozisyonu başlat
+      matchingExercise.init();
       
       // Global erişim için
       window.activeExerciseComponent = {
-        checkAnswer: matchExercise.checkAnswer,
+        checkAnswer: matchingExercise.checkAnswer,
         onContinue: () => {
           // Bileşen durumunu sıfırla
           selectedLeft.value = null;
           selectedRight.value = null;
-          matches.value = [];
+          matchedItems.value = { left: [], right: [] };
+          correctMatches.value = [];
+          wrongMatches.value = { left: [], right: [] };
           
           // Kompozisyonu sıfırla
-          matchExercise.reset();
+          matchingExercise.reset();
           
           // Sonraki egzersize geç
           if (window.mainLayout?.nextExercise) {
             window.mainLayout.nextExercise();
           }
         },
-        renderResultContent: matchExercise.renderResultContent
+        renderResultContent: matchingExercise.renderResultContent
       };
     });
     
@@ -267,8 +238,13 @@ export default {
     const stepStore = window.useStepStore();
     if (stepStore) {
       watch(() => stepStore.currentStepId.value, () => {
-        loadCurrentStepData();
-        matchExercise.reset();
+        matchingExercise.init();
+        // Bileşen durumunu sıfırla
+        selectedLeft.value = null;
+        selectedRight.value = null;
+        matchedItems.value = { left: [], right: [] };
+        correctMatches.value = [];
+        wrongMatches.value = { left: [], right: [] };
       });
     }
     
@@ -277,13 +253,13 @@ export default {
       audioWord,
       leftItems,
       rightItems,
-      matches,
       selectedLeft,
       selectedRight,
-      isComplete,
-      isItemMatched,
-      selectItem,
-      getPositionY
+      matchedItems,
+      correctMatches,
+      wrongMatches,
+      isAnimating,
+      selectItem
     };
   }
 }
@@ -321,12 +297,6 @@ export default {
 }
 
 .match-item {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  padding: 15px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
   height: 60px;
   display: flex;
   align-items: center;
@@ -334,40 +304,44 @@ export default {
   text-align: center;
   font-size: 1.1rem;
   user-select: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white !important;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.match-item:hover {
+.match-item:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
 .match-item.selected {
   background-color: #007bff;
-  border-color: #0056b3;
+  color: white !important;
 }
 
 .match-item.matched {
-  background-color: #28a745;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5) !important;
+  border: 2px solid #28a745;
   cursor: default;
 }
 
-.match-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 5;
-  pointer-events: none;
+.match-item.correct-match {
+  border: 2px solid #28a745;
+  background-color: rgba(40, 167, 69, 0.2);
+  color: white !important;
 }
 
-.match-lines-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
+.match-item.wrong-match {
+  border: 2px solid #dc3545;
+  background-color: rgba(220, 53, 69, 0.2);
+  color: white !important;
 }
 
-.match-line {
-  stroke: rgba(255, 255, 255, 0.7);
-  stroke-width: 2;
+.match-item:disabled:not(.matched):not(.correct-match):not(.wrong-match) {
+  opacity: 1;
+  cursor: not-allowed;
 }
 </style>

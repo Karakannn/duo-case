@@ -73,22 +73,31 @@
     // Global değişkenden başlangıç adımını al
     const initialStepId = getGlobalStep();
 
-    // Durum değişkenleri
+    // Adım bilgisi ve durum değişkenleri
     const currentStepId = ref(initialStepId);
     const hearts = ref(5);
     const score = ref(0);
-    
-    // Aktif sıralama
     const activeSequence = ref("default");
 
     // Hesaplanan özellikler
     const currentStep = computed(() => {
       if (EXERCISE_STEPS.value.length === 0) return null;
-      return EXERCISE_STEPS.value.find(step => step.id === currentStepId.value) || EXERCISE_STEPS.value[0];
+      
+      const steps = EXERCISE_STEPS.value.filter(step => step.sequence === activeSequence.value);
+      if (steps.length === 0) return null;
+      
+      const step = steps.find(s => s.id === currentStepId.value);
+      return step || null;
     });
 
     const currentProgress = computed(() => currentStep.value ? currentStep.value.progressPercentage : 0);
     const totalSteps = computed(() => EXERCISE_STEPS.value.length);
+
+    // Reaktif değişkenlerin güncellenmesini tetiklemek için yardımcı fonksiyon
+    const refreshTrigger = ref(0);
+    function triggerRefresh() {
+      refreshTrigger.value++;
+    }
 
     // Adım yönetim metodları
     function setStep(stepId) {
@@ -137,6 +146,17 @@
     function decreaseHearts() {
       if (hearts.value > 0) {
         hearts.value--;
+        console.log(`StepStore - Can azaltıldı. Yeni can: ${hearts.value}`);
+        
+        // Global değişkenleri güncelle
+        if (window.globalStore) {
+          window.globalStore.hearts = hearts.value;
+        }
+        
+        // Header bileşenini doğrudan güncelle
+        if (window.updateHeaderHearts) {
+          window.updateHeaderHearts(hearts.value);
+        }
       }
     }
 
@@ -173,10 +193,7 @@
       return activeSequence.value;
     }
 
-    // Global değişken değişikliklerini izle (gerekirse)
-    // URL değişikliklerini izleme kodu kaldırıldı (popstate event listener)
-
-    // Store API'sını döndür
+    // Store'u döndür
     return {
       // State
       currentStepId,
@@ -187,16 +204,18 @@
       score,
       activeSequence,
       allSteps: readonly(EXERCISE_STEPS),
-
-      // Metodlar
+      refreshTrigger,
+      
+      // Actions
       setStep,
       nextStep,
       previousStep,
       changeSequence,
       decreaseHearts,
       increaseScore,
-
-      // Eski API uyumluluk metodları
+      triggerRefresh,
+      
+      // Getters
       getProgress,
       getCurrentStep,
       getCurrentStepInfo,
@@ -207,36 +226,41 @@
     };
   };
 
-  // Global store tek instance - eski pencere store'u ile uyumlu
-  let globalStepStore;
-
-  // Global olarak erişilebilir başlatma fonksiyonu
-  window.initializeGlobalStore = function() {
-    if (!globalStepStore) {
-      globalStepStore = window.useStepStore();
+  // Global StepStore'u başlat
+  function initializeGlobalStore() {
+    const globalStepStore = window.useStepStore();
+    
+    // Global değişkenlere ata
+    window.stepStore = globalStepStore;
+    
+    // Eski API uyumluluğu için window.store'u güncelle
+    window.store = {
+      getProgress: globalStepStore.getProgress,
+      getCurrentStep: globalStepStore.getCurrentStep,
+      getCurrentStepInfo: globalStepStore.getCurrentStepInfo,
+      getHearts: globalStepStore.getHearts,
+      getScore: globalStepStore.getScore,
+      getTotalSteps: globalStepStore.getTotalSteps,
+      getActiveSequence: globalStepStore.getActiveSequence,
       
-      // Eski window.store API'si ile uyumluluk için global store'u ekle
-      window.store = {
-        ...window.store, // Varsa mevcut store özelliklerini koru
-        
-        // State getters
-        getProgress: () => globalStepStore.getProgress(),
-        getHearts: () => globalStepStore.getHearts(),
-        getScore: () => globalStepStore.getScore(),
-        getCurrentStep: () => globalStepStore.getCurrentStep(),
-        getCurrentStepInfo: () => globalStepStore.getCurrentStepInfo(),
-        getTotalSteps: () => globalStepStore.getTotalSteps(),
-        getActiveSequence: () => globalStepStore.getActiveSequence(),
-        
-        // State setters & actions
-        setStep: (stepId) => globalStepStore.setStep(stepId),
-        nextStep: () => globalStepStore.nextStep(),
-        previousStep: () => globalStepStore.previousStep(),
-        changeSequence: (name) => globalStepStore.changeSequence(name),
-        decreaseHearts: () => globalStepStore.decreaseHearts(),
-        increaseScore: (points) => globalStepStore.increaseScore(points)
-      };
-    }
+      setStep: globalStepStore.setStep,
+      nextStep: globalStepStore.nextStep,
+      previousStep: globalStepStore.previousStep,
+      changeSequence: globalStepStore.changeSequence,
+      decreaseHearts: globalStepStore.decreaseHearts,
+      increaseScore: globalStepStore.increaseScore
+    };
+    
+    // Basit bir global store objesi oluştur
+    window.globalStore = {
+      hearts: globalStepStore.hearts.value,
+      score: globalStepStore.score.value,
+      currentStepId: globalStepStore.currentStepId.value
+    };
+    
     return globalStepStore;
-  };
+  }
+  
+  // Otomatik olarak global store'u başlat
+  initializeGlobalStore();
 })();

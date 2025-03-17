@@ -12,25 +12,8 @@
     <Footer :showResult="showResult" :isCorrect="isCorrect" :canCheck="canCheck" :correctAnswer="correctAnswer"
       :correctStreak="correctStreak" />
 
-    <!-- Result Modal - Only for incorrect answers -->
-    <div v-if="showModal" class="modal-backdrop incorrect" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2 class="modal-title">Yanlış!</h2>
-        </div>
-        <div class="modal-body">
-          <div class="hearts-notification">
-            <i class="fas fa-heart-broken text-danger me-2"></i>
-            <span>1 canınız eksildi. Kalan: {{ hearts }}</span>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-lg btn-primary" @click="closeModal">
-            TAMAM
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Yanlış Cevap Modalı - Şimdilik bu modalı kullanıyoruz -->
+    <HeartLostModal v-if="showModal && !isCorrect" :show="showModal" :remainingHearts="hearts" @continue="closeModal" />
   </div>
 </template>
 
@@ -40,7 +23,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 export default {
   components: {
     Header: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Header.vue", window.sfcOptions)),
-    Footer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Footer.vue", window.sfcOptions))
+    Footer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Footer.vue", window.sfcOptions)),
+    HeartLostModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/HeartLostModal.vue", window.sfcOptions))
   },
   setup() {
     // State
@@ -53,14 +37,20 @@ export default {
     const correctAnswer = ref('coffee');
     const activeExerciseContent = ref(null);
     const progress = ref(0);
-    const hearts = ref(5);
+    const stepStore = window.useStepStore();
+    const hearts = computed(() => {
+      if (stepStore && stepStore.hearts) {
+        console.log(`MainLayout - hearts computed - StepStore hearts değeri: ${stepStore.hearts.value}`);
+        return stepStore.hearts.value;
+      }
+      return 5;
+    });
     const title = ref('');
     const currentExerciseData = ref(null);
     const correctStreak = ref(0);
 
     // Current step tracking
     const currentStepIndex = ref(0);
-    const stepStore = window.useStepStore();
 
     // Computed properties
     const activeExerciseHasCustomContent = computed(() => {
@@ -106,18 +96,24 @@ export default {
 
     const loadExerciseDataAndComponent = (stepId) => {
       if (!window.exerciseStepsManager) {
+        console.log('MainLayout - window.exerciseStepsManager bulunamadı');
         return;
       }
 
       const stepData = window.exerciseStepsManager.getStepById(stepId);
+      console.log('MainLayout - stepId:', stepId);
+      console.log('MainLayout - stepData:', stepData);
 
       if (stepData) {
         currentExerciseData.value = stepData;
+        // Global değişken olarak da ayarla
+        window.currentExerciseData = stepData;
+        console.log('MainLayout - currentExerciseData.value:', currentExerciseData.value);
+        console.log('MainLayout - window.currentExerciseData:', window.currentExerciseData);
 
         const componentMap = {
           'word-match': 'WordMatchExercise',
           'word-builder': 'WordBuilderExercise',
-          'text-input': 'TextInputExercise',
           'fill-in-blank': 'FillInBlankExercise',
           'picture-match': 'PictureMatchExercise',
           'matching': 'MatchingExercise'
@@ -140,11 +136,10 @@ export default {
       correctStreak.value = 0;
 
       if (stepStore) {
+        console.log('MainLayout - onMounted - stepStore bulundu');
         stepStore.setStep(globalStep);
 
         loadExerciseDataAndComponent(stepStore.currentStepId.value);
-
-        hearts.value = stepStore.hearts.value;
 
         watch(() => stepStore.currentStepId.value, (newStepId) => {
           loadExerciseDataAndComponent(newStepId);
@@ -152,9 +147,11 @@ export default {
           console.log(`Step changed to ${newStepId}`);
         }, { immediate: true });
 
-        watch(() => stepStore.hearts.value, (newValue) => {
-          hearts.value = newValue;
+        watch(() => stepStore.hearts.value, (newValue, oldValue) => {
+          console.log(`MainLayout - stepStore.hearts değişti: ${oldValue} -> ${newValue}`);
         });
+      } else {
+        console.log('MainLayout - onMounted - stepStore bulunamadı!');
       }
     });
 
@@ -185,7 +182,7 @@ export default {
 
       console.log('checkAnswer', canCheck.value);
       console.log('window.activeExerciseComponent', window.activeExerciseComponent);
-      
+
 
       if (window.activeExerciseComponent && typeof window.activeExerciseComponent.checkAnswer === 'function') {
         const result = window.activeExerciseComponent.checkAnswer();
@@ -206,7 +203,8 @@ export default {
           progress.value = 0;
 
           if (stepStore) {
-            stepStore.decreaseHeart();
+            console.log('MainLayout - Yanlış cevap, can azaltılıyor');
+            stepStore.decreaseHearts();
             showModal.value = true;
           }
         }
@@ -318,14 +316,14 @@ export default {
   justify-content: center;
 }
 
-.modal-content {
-  background-color: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+.modal-content-container {
   animation: modal-pop 0.3s forwards;
+}
+
+.modal-content {
+  border-radius: 12px;
+  max-width: 500px;
+  overflow: hidden;
 }
 
 .modal-header {

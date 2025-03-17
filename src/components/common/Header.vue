@@ -20,7 +20,7 @@
       <div class="hearts-container d-flex align-items-center">
         <img src="https://d35aaqx5ub95lt.cloudfront.net/images/hearts/7631e3ee734dd4fe7792626b59457fa4.svg" alt="Heart"
           class="heart-icon" />
-        <span class="ms-1 text-danger fw-bold">{{ hearts }}</span>
+        <span class="ms-1 text-danger fw-bold">{{ localHearts }}</span>
       </div>
     </div>
   </div>
@@ -43,17 +43,33 @@ export default {
       default: 0
     }
   },
-  emits: ['select'],
-  mounted() {
-    console.log(`Header mounted with progress: ${this.progress}%, streak: ${this.correctStreak}`);
-  },
-  watch: {
-    progress(newValue) {
-      console.log(`Progress updated in Header: ${newValue}%`);
-    },
-    correctStreak(newValue) {
-      console.log(`Streak updated: ${newValue}`);
-    }
+  setup(props) {
+    const { ref, watchEffect } = Vue;
+    
+    // Hearts değerini tutacak lokal değişken
+    const localHearts = ref(props.hearts);
+    
+    // Props'tan ve globalStore'dan hearts değerini izle
+    watchEffect(() => {
+      // Props'tan gelen hearts değerini kullan
+      localHearts.value = props.hearts;
+      
+      // Eğer globalStore varsa ve hearts değeri farklıysa, globalStore'dan al
+      if (window.globalStore && typeof window.globalStore.hearts !== 'undefined') {
+        if (localHearts.value !== window.globalStore.hearts) {
+          localHearts.value = window.globalStore.hearts;
+        }
+      }
+    });
+    
+    // Hearts değerini güncellemek için global fonksiyon
+    window.updateHeaderHearts = (value) => {
+      localHearts.value = value;
+    };
+    
+    return {
+      localHearts
+    };
   }
 }
 </script>

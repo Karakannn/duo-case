@@ -10,6 +10,5 @@ import './exercises/useWordMatch.js';
 import './exercises/useFillInBlank.js';
 import './exercises/useWordBuilder.js';
 import './exercises/usePictureMatch.js';
-import './exercises/useTextInput.js';
 
 console.log('Tüm egzersiz modülleri yüklendi!');

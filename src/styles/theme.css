@@ -80,6 +80,7 @@
   --color-iguana: rgb(32, 47, 54);
   --color-blue-jay: rgb(63, 133, 167);
   --color-whale: rgb(24, 153, 214);
+  --color-wolf: rgb(220, 230, 236);
 
   --color-beetle: rgb(206, 130, 255);
   --color-owl: rgb(147, 211, 51);
@@ -164,6 +165,8 @@
   --color-blue-jay: rgb(63, 133, 167);
   --color-beetle: rgb(206, 130, 255);
   --color-owl: rgb(147, 211, 51);
+  --color-wolf: rgb(220, 230, 236);
+
 
   --internal-background-color: rgb(19, 31, 36);
   --internal--switchable--border-color: rgb(55, 70, 79);
