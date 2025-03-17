@@ -2,7 +2,7 @@
   <div class="exercise-component">
     <div class="wrapper">
       <h1 class="exercise-title">{{ title }}</h1>
-      
+
       <div class="top-container">
         <div class="character-container">
           <div class="speech-bubble-container">
@@ -17,50 +17,24 @@
           </div>
         </div>
       </div>
-      
+
       <div class="bottom-container">
-        <div 
-          ref="destinationContainer" 
-          class="destination-container"
-        >
-          <div 
-            ref="destinationInnerContainer" 
-            class="destination-inner-container"
-          ></div>
+        <div ref="destinationContainer" class="destination-container">
+          <div ref="destinationInnerContainer" class="destination-inner-container"></div>
         </div>
-        
-        <div 
-          ref="originContainer" 
-          class="origin-container"
-        >
-          <div 
-            ref="originInnerContainer" 
-            class="origin-inner-container"
-          >
-            <div 
-              v-for="(word, index) in wordList" 
-              :key="index" 
-              :id="`word-container-${index}`" 
-              class="word-container"
-            >
+
+        <div ref="originContainer" class="origin-container">
+          <div ref="originInnerContainer" class="origin-inner-container">
+            <div v-for="(word, index) in wordList" :key="index" :id="`word-container-${index}`" class="word-container">
               <div class="word-holder" :id="`word-holder-${index}`"></div>
               <div class="word-wrapper">
-                <Word 
-                  :ref="el => { if (el) wordComponents[index] = el }"
-                  :text="word" 
-                  :index="index" 
-                  :initial-location="getInitialLocation(index)" 
-                  :holder-id="`word-holder-${index}`" 
-                  :container-id="`word-container-${index}`" 
-                  :destination-container-ref="destinationContainer" 
-                  :destination-inner-container-ref="destinationInnerContainer" 
-                  :origin-inner-container-ref="originInnerContainer"
-                  @click="handleWordClick" 
-                  @word-positioned="handleWordPositioned" 
-                  @location-change="handleLocationChange" 
-                  @animation-start="handleAnimationStart" 
-                  @animation-end="handleAnimationEnd" 
-                />
+                <Word :ref="el => { if (el) wordComponents[index] = el }" :text="word" :index="index"
+                  :initial-location="getInitialLocation(index)" :holder-id="`word-holder-${index}`"
+                  :container-id="`word-container-${index}`" :destination-container-ref="destinationContainer"
+                  :destination-inner-container-ref="destinationInnerContainer"
+                  :origin-inner-container-ref="originInnerContainer" @click="handleWordClick"
+                  @word-positioned="handleWordPositioned" @location-change="handleLocationChange"
+                  @animation-start="handleAnimationStart" @animation-end="handleAnimationEnd" />
               </div>
             </div>
           </div>
@@ -102,7 +76,7 @@ export default {
 
         // Find the word component by index and trigger animation
         const component = wordComponents.value[nextIndex];
-        
+
         if (component) {
           component.processQueuedClick(onAnimationComplete);
         }

@@ -1,11 +1,7 @@
 <template>
-  <div
-    ref="wordElement"
-    class="word"
+  <div ref="wordElement" class="word"
     :class="{ 'in-origin': location === 'origin', 'in-destination': location === 'destination' }"
-    :style="{ transform: transformValue }"
-    @click="handleClick"
-  >
+    :style="{ transform: transformValue }" @click="handleClick">
     {{ text }}
   </div>
 </template>
@@ -62,17 +58,17 @@ export default {
   mounted() {
     // Store original parent container
     this.originalParent = this.$el.parentElement;
-    
+
     // Get the index among siblings
     this.originalIndex = Array.from(this.originalParent.parentElement.children).indexOf(this.originalParent);
-    
+
     // Initialize element after rendering
     this.$nextTick(() => {
       this.initializeElement();
       this.updatePosition();
       this.originalPosition = { ...this.position };
     });
-    
+
     // Add event listeners
     window.addEventListener('resize', this.handleResize);
     this.$el.addEventListener('transitionend', this.handleTransitionEnd);
@@ -96,19 +92,23 @@ export default {
   methods: {
     initializeElement() {
       const rect = this.$el.getBoundingClientRect();
-      
-      // Set sizes for holder and container elements
       if (this.holderId && this.containerId) {
         const holder = document.getElementById(this.holderId);
         const wordContainer = document.getElementById(this.containerId);
         const wordWrapper = this.originalParent;
-        
+
         if (holder && wordContainer && wordWrapper) {
           const width = rect.width;
           const height = rect.height;
-          
+
+
           holder.style.width = `${width}px`;
           holder.style.height = `${height}px`;
+          holder.style.backgroundColor = 'rgb(55, 70, 79)';
+          holder.style.border = '2px solid rgb(55, 70, 79)';
+          holder.style.borderRadius = '12px';
+          holder.style.boxShadow = '0 2px 0';
+
           wordWrapper.style.width = `${width}px`;
           wordWrapper.style.height = `${height}px`;
           wordContainer.style.width = `${width}px`;
@@ -118,7 +118,7 @@ export default {
     },
     updatePosition(skipEmit = false) {
       if (!this.$refs.wordElement) return;
-      
+
       const rect = this.$refs.wordElement.getBoundingClientRect();
       this.position = {
         x: rect.x,
@@ -126,7 +126,7 @@ export default {
         width: rect.width,
         height: rect.height
       };
-      
+
       // Emit position to parent
       if (!skipEmit) {
         this.$emit('word-positioned', {
@@ -151,11 +151,11 @@ export default {
     handleClick() {
       // Ignore clicks during animation
       if (this.isAnimating) return;
-      
+
       // Set animating flag and toggle location
       this.isAnimating = true;
       this.location === 'origin' ? this.moveToDestination() : this.moveToOrigin();
-      
+
       // Emit click event
       this.$emit('click', {
         index: this.index,
@@ -172,7 +172,7 @@ export default {
     },
     handleResize() {
       this.updatePosition(true);
-      
+
       // Update original position if at origin
       if (this.location === 'origin') {
         this.originalPosition = { ...this.position };
@@ -184,11 +184,11 @@ export default {
       const element = this.$el;
       const destinationContainer = this.destinationContainerRef;
       const destinationInnerContainer = this.destinationInnerContainerRef;
-      
+
       if (!destinationContainer || !destinationInnerContainer) return;
-      
+
       this.isAnimating = true;
-      
+
       // Get current position and set holder dimensions
       const originalRect = element.getBoundingClientRect();
       const holderElement = document.getElementById(this.holderId);
@@ -196,11 +196,11 @@ export default {
         holderElement.style.width = `${originalRect.width}px`;
         holderElement.style.height = `${originalRect.height}px`;
       }
-      
+
       // Calculate target position
       const destinationWords = Array.from(destinationInnerContainer.children);
       let targetX, targetY;
-      
+
       if (destinationWords.length === 0) {
         // Position at the start if no words in destination
         const destinationRect = destinationInnerContainer.getBoundingClientRect();
@@ -210,17 +210,17 @@ export default {
         // Position after the last word
         const lastWord = destinationWords[destinationWords.length - 1];
         const lastWordRect = lastWord.getBoundingClientRect();
-        
+
         targetX = lastWordRect.x + lastWordRect.width + 10;
         targetY = lastWordRect.y;
       }
-      
+
       // Calculate offsets and update location
       const xOffset = targetX - originalRect.x;
       const yOffset = targetY - originalRect.y;
       this.location = 'destination';
       this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
-      
+
       // Handle transition end
       const handleTransitionComplete = (e) => {
         if (e.propertyName === 'transform') {
@@ -230,36 +230,36 @@ export default {
           this.isAnimating = false;
         }
       };
-      
+
       element.addEventListener('transitionend', handleTransitionComplete);
       this.emitLocationChange();
     },
     moveToOrigin() {
       const element = this.$el;
       const holder = document.getElementById(this.holderId);
-      
+
       if (!holder) return;
-      
+
       this.isAnimating = true;
-      
+
       // Calculate target position
       const currentRect = element.getBoundingClientRect();
       const holderRect = holder.getBoundingClientRect();
       const targetX = holderRect.x;
       const targetY = holderRect.y;
-      
+
       // Calculate offsets and update location
       const xOffset = targetX - currentRect.x;
       const yOffset = targetY - currentRect.y;
       this.location = 'origin';
       this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
-      
+
       // Handle transition end
       const handleTransitionComplete = (e) => {
         if (e.propertyName === 'transform') {
           element.removeEventListener('transitionend', handleTransitionComplete);
           this.transformValue = '';
-          
+
           // Move back to original container
           const originalContainer = document.getElementById(this.containerId);
           if (originalContainer) {
@@ -270,11 +270,11 @@ export default {
               originalContainer.appendChild(element);
             }
           }
-          
+
           this.isAnimating = false;
         }
       };
-      
+
       element.addEventListener('transitionend', handleTransitionComplete);
       this.emitLocationChange();
     },
@@ -291,35 +291,53 @@ export default {
 
 <style scoped>
 .word {
-  display: inline-block;
-  padding: 10px 15px;
-  margin: 0;
-  background-color: #fff;
-  border: 2px solid #58cc02;
-  border-radius: var(--border-radius);
-  font-size: 16px;
-  font-weight: bold;
-  color: #4b4b4b;
-  cursor: pointer;
-  text-align: center;
-  user-select: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   position: relative;
-  z-index: 1;
+
+  cursor: pointer;
   white-space: nowrap;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  background: none;
+  border: solid transparent;
+  border-radius: 12px;
+  border-width: 2px 2px 4px;
+  color: rgb(241, 247, 251);
+  height: auto;
+  padding: 12px 16px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1;
+
+
 }
 
-.word:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+.word::before {
+  background-color: var(--internal-word-background);
+  border: 3px solid var(--internal-word-border);
+  border-radius: 12px;
+  bottom: -2px;
+  box-shadow: 0 2px 0;
+  color: var(--internal-word-border);
+  content: "";
+  left: -2px;
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  z-index: -1;
 }
 
-.word.in-origin {
+.word:active {
+  transform: translateY(2px) translateZ(0) !important;
+}
+
+
+/* .word.in-origin {
   background-color: #fff;
-}
+} */
 
-.word.in-destination {
+/* .word.in-destination {
   background-color: #fff;
-}
+} */
 </style>
