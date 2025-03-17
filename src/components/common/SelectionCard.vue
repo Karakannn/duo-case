@@ -2,7 +2,10 @@
   <div class="selection-card" :class="[{
     'selected': isSelected,
     'correct': isCorrect,
-    'disabled': isDisabled
+    'disabled': isDisabled,
+    'matched': isMatched,
+    'correct-match': isCorrectMatch,
+    'wrong-match': isWrongMatch
   }, className]" @click="onSelect">
     <slot></slot>
   </div>
@@ -21,6 +24,18 @@ export default {
       default: false
     },
     isDisabled: {
+      type: Boolean,
+      default: false
+    },
+    isMatched: {
+      type: Boolean,
+      default: false
+    },
+    isCorrectMatch: {
+      type: Boolean,
+      default: false
+    },
+    isWrongMatch: {
       type: Boolean,
       default: false
     },
@@ -82,62 +97,74 @@ export default {
 }
 
 /* Selected state styling */
-.selection-card.selected {
+.selection-card.selected:not(.matched):not(.correct-match):not(.wrong-match) {
   color: var(--color-whale);
 }
 
-.selection-card.selected :deep(span.card-text) {
+.selection-card.selected:not(.matched):not(.correct-match):not(.wrong-match) :deep(span.card-text) {
   color: var(--color-whale) !important;
 }
 
-.selection-card.selected :deep(.card-text-index) {
-  color: var(--color-whale) !important;
-  border-width: 3px;
-  border-color: var(--color-blue-jay) !important;
-}
-
-.selection-card:not(.disabled):active {
-  transform: translateY(2px) translateZ(0);
-}
-
-.selection-card.selected::before {
-  background-color: var(--color-iguana);
+.selection-card.selected:not(.matched):not(.correct-match):not(.wrong-match)::before {
   border-color: var(--color-blue-jay);
+  box-shadow: 0 2px 0 var(--color-blue-jay);
 }
 
 /* Correct state styling */
 .selection-card.correct {
-  color: var(--internal-color-success) !important;
-}
-
-.selection-card.correct :deep(span.card-text) {
-  color: var(--internal-color-success) !important;
-}
-
-.selection-card.correct :deep(.card-text-index) {
-  color: var(--internal-color-success) !important;
-  border-color: var(--internal-border-success) !important;
+  color: var(--color-owl);
 }
 
 .selection-card.correct::before {
-  background-color: var(--internal-background-color-success);
+  background-color: var(--color-snow);
+  border-color: var(--color-owl);
+  box-shadow: 0 2px 0 var(--color-owl);
+}
+
+.selection-card.correct :deep(span.card-text) {
+  color: var(--color-owl) !important;
+}
+
+.selection-card.correct :deep(.card-text-index) {
+  color: var(--color-owl) !important;
+  border-width: 3px;
   border-color: var(--internal-border-success) !important;
 }
 
-/* Combined states - selected + correct */
-.selection-card.selected.correct {
-  color: var(--internal-color-success) !important;
+/* Matched state styling */
+.selection-card.matched {
+  color: var(--color-eel);
 }
 
-.selection-card.selected.correct :deep(span.card-text) {
-  color: var(--internal-color-success) !important;
+.selection-card.matched::before {
+  background-color: var(--color-polar);
+  border-color: var(--color-swan);
+  box-shadow: 0 2px 0 var(--color-swan);
 }
 
-.selection-card.selected.correct :deep(.card-text-index) {
-  color: var(--internal-color-success) !important;
-  border-color: var(--internal-border-success) !important;
+/* Correct match state styling */
+.selection-card.correct-match {
+  color: var(--color-owl);
 }
 
+.selection-card.correct-match::before {
+  background-color: rgba(88, 204, 2, 0.1);
+  border-color: var(--color-owl);
+  box-shadow: 0 2px 0 var(--color-owl);
+}
+
+/* Wrong match state styling */
+.selection-card.wrong-match {
+  color: var(--color-cardinal);
+}
+
+.selection-card.wrong-match::before {
+  background-color: rgba(255, 75, 75, 0.1);
+  border-color: var(--color-cardinal);
+  box-shadow: 0 2px 0 var(--color-cardinal);
+}
+
+/* Disabled state styling */
 .selection-card.disabled {
   cursor: default;
   opacity: 0.9;

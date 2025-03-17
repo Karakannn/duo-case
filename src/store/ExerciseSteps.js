@@ -3,23 +3,10 @@
   // Tüm egzersiz adımlarını içeren dizi
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
-    // WordBuilder Egzersizi Örneği
 
-     // Matching Egzersizi Örneği
-   
-    {
-      type: 'word-match',
-      id: 1, // ID'yi 3'e değiştirdim
-      stepProgress: 20, // İlerleme yüzdesini güncelledim
-      question: {
-        word: 'Goodbye',
-        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
-        correctOption: 'Güle güle'
-      }
-    },
     {
       type: 'matching',
-      id: 2,
+      id: 1,
       stepProgress: 0, // İlerleme yüzdesi
       question: {
         leftItems: [
@@ -43,6 +30,17 @@
           { leftId: 4, rightId: 4 },
           { leftId: 5, rightId: 5 }
         ]
+      }
+    },
+
+    {
+      type: 'word-match',
+      id: 2, // ID'yi 3'e değiştirdim
+      stepProgress: 20, // İlerleme yüzdesini güncelledim
+      question: {
+        word: 'Goodbye',
+        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
+        correctOption: 'Güle güle'
       }
     },
     {
@@ -84,7 +82,7 @@
         correctAnswer: 'go'
       }
     },
-   
+
     // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',
