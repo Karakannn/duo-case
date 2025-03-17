@@ -3,20 +3,24 @@
   // Tüm egzersiz adımlarını içeren dizi
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
-    // WordMatch Egzersizi Örneği
-   /*  {
-      type: 'word-match',
-      id: 1,
+    // WordBuilder Egzersizi Örneği
+    {
+      type: 'word-builder',
+      id: 1, // ID'yi 1 olarak değiştirdim, böylece ilk sırada başlar
+      stepProgress: 0, // İlerleme yüzdesini sıfırdan başlattım
       question: {
-        word: 'Hello',
-        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
-        correctOption: 'Merhaba'
+        text: 'Yeni bir kitap aldım',
+        meaning: 'I bought a new book',
+        word: 'Book', // Added word property for speech bubble
+        parts: ['Yen', 'i', ' bir ', 'ki', 'tap', ' al', 'dım'],
+        correctSequence: [0, 1, 2, 3, 4, 5, 6]
       }
-    }, */
+    },
+    // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',
-      id: 1,
-      stepProgress: 0, // İlerleme yüzdesi - 0'dan başlar
+      id: 2, // ID'yi 2'ye değiştirdim
+      stepProgress: 20, // İlerleme yüzdesini güncelledim
       question: {
         imageUrl: '/images/question/dog.jpg',
         options: [
@@ -27,27 +31,15 @@
         correctOption: 'coffee'
       }
     },
-
-    // WordMatch Egzersizi Örneği 2
+    // WordMatch Egzersizi Örneği
     {
       type: 'word-match',
-      id: 2,
-      stepProgress: 20, // İlerleme yüzdesi
+      id: 3, // ID'yi 3'e değiştirdim
+      stepProgress: 40, // İlerleme yüzdesini güncelledim
       question: {
         word: 'Goodbye',
         options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
         correctOption: 'Güle güle'
-      }
-    },
-    // WordBuilder Egzersizi Örneği
-    {
-      type: 'word-builder',
-      id: 3,
-      stepProgress: 40, // İlerleme yüzdesi
-      question: {
-        sentence: 'I ____ an apple',
-        letters: ['a', 'e', 't', 'n', 'o', 'c', 'h', 'r', 'v', 'p', 'l'],
-        correctWord: 'have'
       }
     },
     // TextInput Egzersizi Örneği
@@ -92,13 +84,13 @@
   // Adım sıralamaları - farklı egzersiz dizileri oluşturmak için
   const exerciseSequences = {
     // Varsayılan sıralama - tüm adımlar
-    default: [1, 2, 3, 4, 5, 6],
+    default: [1, 2, 3, 4, 5, 6], // Sıralamayı yeni ID'lere göre güncelledim
     // Sadece kelime eşleştirme ve kelime oluşturma
-    wordFocus: [1, 2, 3],
+    wordFocus: [1, 3], // Sıralamayı yeni ID'lere göre güncelledim
     // Sadece cümle odaklı egzersizler
     sentenceFocus: [4, 5],
     // Özel sıralama örneği
-    custom: [2, 4, 6]
+    custom: [3, 4, 6]
   };
 
   // Aktif sıralama

@@ -1,9 +1,9 @@
 <template>
-  <div class="selection-card" :class="{
+  <div class="selection-card" :class="[{
     'selected': isSelected,
     'correct': isCorrect,
     'disabled': isDisabled
-  }" @click="onSelect">
+  }, className]" @click="onSelect">
     <slot></slot>
   </div>
 </template>
@@ -23,6 +23,10 @@ export default {
     isDisabled: {
       type: Boolean,
       default: false
+    },
+    className: {
+      type: [String, Object, Array],
+      default: ''
     }
   },
   emits: ['select'],

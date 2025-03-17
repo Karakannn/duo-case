@@ -183,23 +183,8 @@ export default {
       const destContainer = this.destinationContainerRef;
       const destRect = destContainer.getBoundingClientRect();
       
-      // Calculate X position (based on words already in destination)
+      // Set a default position (will be updated by repositionDestinationWords in useWordBuilder)
       let destX = destRect.x + 10; // Add some padding
-      
-      const wordsInDestination = this.wordPositions
-        .filter(w => w && w.location === 'destination' && w.index !== this.index)
-        .sort((a, b) => a.position.x - b.position.x);
-      
-      console.log(`[${this.index}] Words in destination:`, wordsInDestination.length);
-      
-      // Adjust destX based on existing words
-      if (wordsInDestination.length > 0) {
-        const totalWidth = wordsInDestination.reduce(
-          (sum, w) => sum + w.position.width, 0
-        ) + (wordsInDestination.length * 10); // 10px gap between words
-        
-        destX += totalWidth;
-      }
       
       // Calculate Y position (center vertically)
       const destY = destRect.y + (destRect.height / 2) - (this.position.height / 2);
@@ -240,7 +225,52 @@ export default {
         location: this.location,
         position: this.position
       });
-    }
+    },
+    setPositionX(x) {
+      if (!this.originalPosition) return;
+      
+      // Calculate new transform based on x
+      const destY = this.destinationContainerRef ? 
+        this.destinationContainerRef.getBoundingClientRect().y + 
+        (this.destinationContainerRef.getBoundingClientRect().height / 2) - 
+        (this.position.height / 2) : 
+        this.position.y;
+      
+      const xOffset = x - this.originalPosition.x;
+      const yOffset = destY - this.originalPosition.y;
+      
+      console.log(`[${this.index}] Repositioning to X=${x}, offset=${xOffset}`);
+      
+      // Update transform
+      this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
+      
+      // Update position for tracking
+      this.position.x = x;
+    },
+    processQueuedClick(onComplete = null) {
+      if (this.isAnimating) return;
+      
+      console.log(`[${this.index}] Processing queued click`);
+      this.isAnimating = true;
+      
+      if (this.location === 'origin') {
+        this.moveToDestination();
+      } else {
+        this.moveToOrigin();
+      }
+      
+      // If callback provided, call it after animation completes
+      if (onComplete && typeof onComplete === 'function') {
+        const handleTransitionComplete = (event) => {
+          if (event.propertyName === 'transform') {
+            this.$refs.wordElement.removeEventListener('transitionend', handleTransitionComplete);
+            onComplete();
+          }
+        };
+        
+        this.$refs.wordElement.addEventListener('transitionend', handleTransitionComplete);
+      }
+    },
   }
 }
 </script>

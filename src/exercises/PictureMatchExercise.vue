@@ -21,13 +21,9 @@
       </div>
 
       <div class="options-grid">
-        <selection-card 
-          v-for="(option, index) in options" 
-          :key="index"
-          :is-selected="selectedOption === option.name" 
-          :is-correct="isAnswerChecked && option.name === correctOptionName"
-          :is-disabled="isAnswerChecked"
-          @select="handleOptionSelect(option)">
+        <selection-card v-for="(option, index) in options" :key="index" :is-selected="selectedOption === option.name"
+          :is-correct="isAnswerChecked && option.name === correctOptionName" :is-disabled="isAnswerChecked"
+          :class-name="'picture-card'" @select="handleOptionSelect(option)">
           <div class="card-image-container">
             <div class="card-image" :style="{ backgroundImage: `url(${option.imageUrl})` }"></div>
           </div>
@@ -64,7 +60,7 @@ export default {
 
     // PictureMatch composable'ını kullan
     const pictureMatch = window.usePictureMatch(props);
-    
+
     // State
     const title = ref("Görsele uygun kelimeyi seçin");
     const questionImageUrl = ref("");
@@ -92,21 +88,21 @@ export default {
       window.activeExerciseComponent = {
         checkAnswer: () => {
           const result = pictureMatch.checkAnswer();
-          
+
           // Store the correct option name from the result
           if (result && result.correctAnswer) {
             correctOptionName.value = result.correctAnswer;
           }
-          
+
           // Mark answer as checked
           isAnswerChecked.value = true;
-          
+
           return result;
         },
         onContinue: () => {
           isAnswerChecked.value = false;
           pictureMatch.onContinue();
-          
+
           // Update correctOptionName for the new exercise
           setTimeout(() => {
             if (window.currentExercise && window.currentExercise.correctOption) {
