@@ -63,25 +63,19 @@ export default {
 
     // Load exercise data from ExerciseSteps.js
     const loadExerciseData = () => {
-      console.log('Loading word match exercise data from ExerciseSteps.js');
-      
       // Get all word-match exercises
       let exercises = [];
       
       if (window.exerciseStepsManager) {
         exercises = window.exerciseStepsManager.getStepsByType('word-match') || [];
-        console.log('Found exercises from exerciseStepsManager:', exercises);
       } else if (window.exerciseSteps) {
         // Try to access directly if manager is not available
         exercises = window.exerciseSteps.filter(step => step.type === 'word-match') || [];
-        console.log('Found exercises from window.exerciseSteps:', exercises);
       }
       
       // Select current exercise based on step index
       if (exercises && exercises.length > 0) {
         currentExercise.value = exercises[currentStepIndex.value % exercises.length];
-        console.log('Selected word match exercise:', currentExercise.value);
-        
         initializeExerciseData();
       } else {
         console.error('No word-match exercises found in ExerciseSteps');
@@ -92,7 +86,9 @@ export default {
     const initializeExerciseData = () => {
       if (currentExercise.value && currentExercise.value.question) {
         const questionData = currentExercise.value.question;
-        console.log('Exercise question data:', questionData);
+        
+        // Set title from exercise data or use default
+        title.value = questionData.title || "Choose the correct translation";
         
         // Set the word to translate - try different possible field names
         word.value = questionData.word || questionData.text || '';
@@ -112,11 +108,6 @@ export default {
                               questionData.correctAnswer || 
                               questionData.answer || 
                               '';
-        
-        console.log('Initialized exercise with:');
-        console.log('- word:', word.value);
-        console.log('- options:', options.value);
-        console.log('- correctOption:', correctOption.value);
       } else {
         console.error('Invalid exercise data structure:', currentExercise.value);
       }
@@ -140,12 +131,14 @@ export default {
 
     // Handle option selection
     const handleOptionSelect = (option) => {
-      if (!isAnswerChecked.value) {
-        selectedOption.value = option;
-        
-        // Update global canCheck status if available
-        if (window.mainLayout && window.mainLayout.canCheck) {
+      selectedOption.value = option;
+      
+      // Enable "Kontrol Et" button when an option is selected
+      if (window.mainLayout) {
+        if (typeof window.mainLayout.canCheck === 'object' && window.mainLayout.canCheck.value !== undefined) {
           window.mainLayout.canCheck.value = true;
+        } else {
+          window.mainLayout.canCheck = true;
         }
       }
     };
@@ -212,32 +205,31 @@ export default {
       }
     };
 
-    // Component setup
+    // Initialize from props if available or from ExerciseSteps otherwise
     onMounted(() => {
-      // Initialize exercise
-      init();
-
-      // Setup global API
+      if (props.exerciseData && props.exerciseData.question) {
+        // Initialize from props
+        currentExercise.value = props.exerciseData;
+        initializeExerciseData();
+      } else {
+        // Initialize from ExerciseSteps
+        loadExerciseData();
+      }
+      
+      // Make sure canCheck is set to false initially
+      if (window.mainLayout) {
+        if (typeof window.mainLayout.canCheck === 'object' && window.mainLayout.canCheck.value !== undefined) {
+          window.mainLayout.canCheck.value = false;
+        } else {
+          window.mainLayout.canCheck = false;
+        }
+      }
+      
+      // Set the active exercise component for global use
       window.activeExerciseComponent = {
         checkAnswer,
-        onContinue,
-        renderResultContent: (isCorrect) => {
-          return {
-            title: isCorrect ? 'Correct!' : 'Incorrect',
-            message: isCorrect ? 'Well done!' : `The correct answer is: ${correctOption.value}`
-          };
-        }
+        onContinue
       };
-      
-      // Initialize mainLayout props if they don't exist
-      if (!window.mainLayout) {
-        window.mainLayout = {
-          canCheck: ref(false),
-          showResult: ref(false),
-          isCorrect: ref(false),
-          correctAnswer: ref('')
-        };
-      }
     });
 
     return {

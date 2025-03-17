@@ -5,21 +5,31 @@
   const exerciseSteps = [
     // WordBuilder Egzersizi Örneği
     {
+      type: 'word-match',
+      id: 1, // ID'yi 3'e değiştirdim
+      stepProgress: 40, // İlerleme yüzdesini güncelledim
+      question: {
+        word: 'Goodbye',
+        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
+        correctOption: 'Güle güle'
+      }
+    },
+    {
       type: 'word-builder',
-      id: 1, // ID'yi 1 olarak değiştirdim, böylece ilk sırada başlar
+      id: 2, // ID'yi 1 olarak değiştirdim, böylece ilk sırada başlar
       stepProgress: 0, // İlerleme yüzdesini sıfırdan başlattım
       question: {
         text: 'Yeni bir kitap aldım',
         meaning: 'I bought a new book',
         word: 'Book', // Added word property for speech bubble
-        parts: ['Yen', 'i', ' bir ', 'ki', 'tap', ' al', 'dım'],
-        correctSequence: [0, 1, 2, 3, 4, 5, 6]
+        parts: ['Yeni', 'bir', 'kitap', 'aldım'],
+        correctSequence: [0, 1, 2, 3]
       }
     },
     // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',
-      id: 2, // ID'yi 2'ye değiştirdim
+      id: 3, // ID'yi 2'ye değiştirdim
       stepProgress: 20, // İlerleme yüzdesini güncelledim
       question: {
         imageUrl: '/images/question/dog.jpg',
@@ -32,16 +42,7 @@
       }
     },
     // WordMatch Egzersizi Örneği
-    {
-      type: 'word-match',
-      id: 3, // ID'yi 3'e değiştirdim
-      stepProgress: 40, // İlerleme yüzdesini güncelledim
-      question: {
-        word: 'Goodbye',
-        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
-        correctOption: 'Güle güle'
-      }
-    },
+   
     // TextInput Egzersizi Örneği
     {
       type: 'text-input',

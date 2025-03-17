@@ -43,6 +43,7 @@
     
     // Cevabı kontrol et
     const checkAnswer = () => {
+      console.log('picture-match checkAnswer', selectedOption.value);
       const isCorrect = selectedOption.value === correctOption.value;
       return exercise.checkAnswer({
         isCorrect,

@@ -165,7 +165,7 @@ defineEmits(['click']);
 .button-danger.is-disabled::before {
   background-color: var(--internal-background-color-disabled);
   color: var(--internal-color-disabled);
- 
+
 }
 
 .button-danger:not(.is-disabled):hover::before {

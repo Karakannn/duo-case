@@ -44,6 +44,8 @@
     
     // Cevabı kontrol et
     const checkAnswer = () => {
+
+      console.log('text-input checkAnswer', userInput.value);
       // Metinleri normalize et
       const normalizedInput = normalize(userInput.value);
       const normalizedCorrect = normalize(correctText.value);

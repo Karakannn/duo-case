@@ -4,13 +4,23 @@
   const { ref, computed, reactive, nextTick } = Vue;
 
   window.useWordBuilder = function(props) {
-    // Use common exercise base
+    // Use common exercise base with data from props
     const exercise = window.useExercise(props, {
       exerciseType: 'word-builder',
-      defaultData: {
-        english: "I eat an apple",
-        correctAnswer: "Yo como una manzana",
-        list: ["manazana", "comes", "Yo", "una", "como", "naranja"]
+      getExerciseData: () => {
+        // If exerciseData is provided in props, use it directly
+        if (props && props.exerciseData) {
+          return props.exerciseData;
+        }
+        
+        // Fallback to empty data
+        return {
+          question: {
+            text: '',
+            meaning: '',
+            parts: []
+          }
+        };
       }
     });
     
@@ -18,77 +28,99 @@
     const english = ref('');
     const correctAnswer = ref('');
     const wordList = ref([]);
-    const userAnswer = ref('');
-    const title = ref('Write this in Spanish');
+    const title = ref('Build this sentence');
     const word = ref('');
+    const userAnswer = ref('');
     
     // Animation and positioning state
-    const destinationWords = reactive([]);
     const wordPositionsArray = reactive([]);
     const isAnyWordAnimating = ref(false);
     const clickQueue = ref([]);
-    const exerciseInitialized = ref(false);
+    const destinationWords = reactive([]);
     
     // Init: Load exercise data
     const init = () => {
       exercise.loadExerciseDataFromProps();
       
-      if (exercise.exerciseData.value.question) {
+      console.log('Exercise data loaded:', exercise.exerciseData.value);
+      
+      if (exercise.exerciseData.value && exercise.exerciseData.value.question) {
         const questionData = exercise.exerciseData.value.question;
-        english.value = questionData.english || questionData.meaning || '';
-        correctAnswer.value = questionData.correctAnswer || questionData.text || '';
-        wordList.value = questionData.list || questionData.parts || [];
-        userAnswer.value = '';
+        console.log('Word builder question data:', questionData);
         
-        // Set title if provided
-        if (questionData.title) {
-          title.value = questionData.title;
+        // Set English text (meaning in ExerciseSteps)
+        english.value = questionData.meaning || '';
+        
+        // Set correct answer (text in ExerciseSteps)
+        correctAnswer.value = questionData.text || '';
+        
+        // Set word list (parts in ExerciseSteps)
+        if (Array.isArray(questionData.parts)) {
+          wordList.value = [...questionData.parts]; // Create a copy of the array
+        } else {
+          wordList.value = [];
+          console.warn('No parts array found in question data');
         }
+        
+        // Set title
+        title.value = 'Build this sentence';
         
         // Set word for speech bubble
         if (questionData.word) {
           word.value = questionData.word;
+        } else if (wordList.value.length > 0) {
+          // Just use the first word part if no specific word is set
+          word.value = wordList.value[0];
         } else {
-          word.value = wordList.value.length > 0 ? wordList.value[0] : "Word";
+          word.value = "Word";
         }
         
-        // Reset all arrays
-        destinationWords.length = 0;
+        // Reset animation and positioning state
         wordPositionsArray.length = 0;
         clickQueue.value = [];
+        isAnyWordAnimating.value = false;
+        destinationWords.length = 0;
         
-        nextTick(() => {
-          exerciseInitialized.value = true;
-        });
+        console.log('Initialized word builder with:');
+        console.log('- English:', english.value);
+        console.log('- Correct answer:', correctAnswer.value);
+        console.log('- Word list:', wordList.value);
+        console.log('- Title:', title.value);
+        console.log('- Word:', word.value);
+      } else {
+        console.error('No valid exercise data found for word builder');
+        
+        // Set default values in case of missing data
+        english.value = '';
+        correctAnswer.value = '';
+        wordList.value = [];
+        word.value = 'Word';
       }
     };
     
     // Determine if a word should start at origin or destination
     const getInitialLocation = (index) => {
-      if (!exerciseInitialized.value) return 'origin';
-      const inDestination = destinationWords.findIndex(w => w.index === index) !== -1;
-      return inDestination ? 'destination' : 'origin';
+      return wordPositionsArray[index]?.location === 'destination' ? 'destination' : 'origin';
     };
     
-    // Process the click queue sequentially
+    // Process the click queue efficiently
     const processClickQueue = () => {
       if (clickQueue.value.length === 0 || isAnyWordAnimating.value) {
-        return;
+        return null;
       }
-
-      // Get the next word to process
+      
       const nextIndex = clickQueue.value.shift();
+      isAnyWordAnimating.value = true;
       
       return {
         nextIndex,
         onAnimationComplete: () => {
-          // This callback is called when animation is complete
           isAnyWordAnimating.value = false;
-
-          // Process next in queue
-          nextTick(() => {
-            processClickQueue();
-          });
+          
+          // Process next in queue if any
+          if (clickQueue.value.length > 0) {
+            nextTick(processClickQueue);
+          }
         }
       };
     };
@@ -96,58 +128,43 @@
     // Handle word click
     const handleWordClick = (wordData) => {
       const { index, location } = wordData;
-
-      // Check if we should move the word back to origin
-      if (location === 'destination') {
-        // Add to queue regardless of animation state
-        if (clickQueue.value.indexOf(index) === -1) {
-          clickQueue.value.push(index);
-
-          // If no animation is running, start processing the queue
-          if (!isAnyWordAnimating.value) {
-            return processClickQueue();
-          }
-        }
+      
+      // If word is already in queue, ignore
+      if (clickQueue.value.includes(index)) {
         return null;
       }
-
-      // If a word is already animating, queue this click
-      if (isAnyWordAnimating.value) {
-        // Only add to queue if not already in queue and not already at destination
-        const isInQueue = clickQueue.value.indexOf(index) !== -1;
-        const isAtDestination = wordPositionsArray[index]?.location === 'destination';
-
-        if (!isInQueue && !isAtDestination) {
-          clickQueue.value.push(index);
-        }
-        return null;
-      }
-
-      // Add to queue and process immediately
+      
+      // Add to queue
       clickQueue.value.push(index);
-      return processClickQueue();
+      
+      // Process immediately if no animation is in progress
+      if (!isAnyWordAnimating.value) {
+        return processClickQueue();
+      }
+      
+      return null;
     };
-
+    
     // Handle animation start
-    const handleAnimationStart = (wordData) => {
+    const handleAnimationStart = () => {
       isAnyWordAnimating.value = true;
     };
-
+    
     // Handle animation end
-    const handleAnimationEnd = (wordData) => {
+    const handleAnimationEnd = () => {
       isAnyWordAnimating.value = false;
-
-      // Process next in queue
-      nextTick(() => {
-        return processClickQueue();
-      });
+      
+      // Process next in queue if any
+      if (clickQueue.value.length > 0) {
+        nextTick(processClickQueue);
+      }
     };
     
     // Handle word positioning events
     const handleWordPositioned = (wordData) => {
       const { index, position, location, word } = wordData;
-
-      // Update position in our tracking array
+      
+      // Update position in tracking array
       wordPositionsArray[index] = {
         index,
         position,
@@ -156,70 +173,47 @@
       };
     };
     
-    // Handle location changes from Word component
-    const handleLocationChange = (wordData, containerRef) => {
-      const { index, location, position } = wordData;
-
-      // Update our tracking of destination words
-      if (location === 'destination') {
-        // Add to destination if not already there
-        if (destinationWords.findIndex(w => w.index === index) === -1) {
-          // Add to end of destination words array
-          destinationWords.push({
-            index,
-            word: wordList.value[index],
-            position,
-            addedTime: Date.now() // Add timestamp to track order of addition
-          });
-
-          // Force recalculation of positions
-          return repositionDestinationWords(containerRef);
-        }
-      } else {
-        // Remove from destination
-        const idx = destinationWords.findIndex(w => w.index === index);
-        if (idx !== -1) {
-          destinationWords.splice(idx, 1);
-
-          // Force recalculation to close gaps
-          return repositionDestinationWords(containerRef);
-        }
-      }
-
-      // Update word position in our tracking array
+    // Handle location change
+    const handleLocationChange = (wordData, destinationContainer) => {
+      const { index, location } = wordData;
+      
+      // Update location in tracking array
       if (wordPositionsArray[index]) {
         wordPositionsArray[index].location = location;
       }
       
-      // Update user answer based on destination words
-      const wordsInDestination = wordPositionsArray
-        .filter(w => w && w.location === 'destination')
-        .sort((a, b) => a.position.x - b.position.x);
-
-      updateUserAnswer(wordsInDestination.map(w => w.word));
-      
-      return null;
+      // Reposition words in destination if needed
+      if (location === 'destination' && destinationContainer) {
+        nextTick(() => {
+          repositionDestinationWords(destinationContainer);
+        });
+      }
     };
-
-    // Recalculate and reposition all destination words to close gaps
-    const repositionDestinationWords = (containerRef) => {
-      if (!containerRef || !containerRef.value || destinationWords.length === 0) return null;
+    
+    // Reposition words in destination container
+    const repositionDestinationWords = (destinationContainer) => {
+      if (!destinationContainer || !destinationContainer.value || 
+          wordPositionsArray.filter(w => w && w.location === 'destination').length === 0) {
+        return null;
+      }
 
       // Get container dimensions
-      const containerRect = containerRef.value.getBoundingClientRect();
+      const containerRect = destinationContainer.value.getBoundingClientRect();
       const containerLeft = containerRect.left;
 
       // Gap between words
-      const wordGap = 20;
+      const wordGap = 10;
 
-      // This way, new words are always added to the right (since we push to the array)
-      const wordsToPosition = [...destinationWords];
+      // Get words in destination sorted by x position
+      const wordsInDestination = wordPositionsArray
+        .filter(w => w && w.location === 'destination')
+        .sort((a, b) => a.position.x - b.position.x);
       
       // Calculate positions for each word, adding them from left to right
       let currentX = containerLeft + wordGap;
       
       // Calculate positions for all words
-      const positionedWords = wordsToPosition.map((word) => {
+      const positionedWords = wordsInDestination.map((word) => {
         // Calculate width based on word length with padding
         const wordWidth = word.word.length * 12 + 24;
         
@@ -241,6 +235,20 @@
         };
       });
 
+      // Update destination words array
+      destinationWords.length = 0;
+      positionedWords.forEach(word => {
+        destinationWords.push({
+          index: word.index,
+          word: word.word,
+          position: word.position,
+          addedTime: Date.now()
+        });
+      });
+
+      // Update user answer
+      updateUserAnswer(wordsInDestination.map(w => w.word));
+      
       return positionedWords;
     };
     
@@ -252,6 +260,9 @@
     
     // Check answer
     const checkAnswer = () => {
+
+      console.log('Checking answer:', userAnswer.value, correctAnswer.value);
+      
       const isCorrect = userAnswer.value.toLowerCase() === correctAnswer.value.toLowerCase();
       return exercise.checkAnswer({
         isCorrect,
@@ -265,18 +276,18 @@
       english,
       correctAnswer,
       wordList,
-      userAnswer,
       title,
       word,
+      userAnswer,
       
       // Methods
       init,
       getInitialLocation,
       handleWordClick,
-      handleAnimationStart,
-      handleAnimationEnd,
       handleWordPositioned,
       handleLocationChange,
+      handleAnimationStart,
+      handleAnimationEnd,
       checkAnswer
     };
   };

@@ -55,41 +55,38 @@ export default {
       originalIndex: null
     }
   },
+  computed: {
+    word() {
+      return this.text;
+    },
+    currentLocation() {
+      return this.location;
+    }
+  },
   mounted() {
-    // Store original parent container
     this.originalParent = this.$el.parentElement;
-
-    // Get the index among siblings
     this.originalIndex = Array.from(this.originalParent.parentElement.children).indexOf(this.originalParent);
 
-    // Initialize element after rendering
     this.$nextTick(() => {
       this.initializeElement();
       this.updatePosition();
       this.originalPosition = { ...this.position };
     });
 
-    // Add event listeners
     window.addEventListener('resize', this.handleResize);
     this.$el.addEventListener('transitionend', this.handleTransitionEnd);
   },
   beforeDestroy() {
-    // Remove event listeners
     window.removeEventListener('resize', this.handleResize);
     this.$el.removeEventListener('transitionend', this.handleTransitionEnd);
   },
-  watch: {
-    transformValue(newValue) {
-      // Emit animation start event when transform is applied
-      if (newValue && !this.isAnimating) {
-        this.$emit('animation-start', {
-          index: this.index,
-          location: this.location
-        });
-      }
-    }
-  },
   methods: {
+    reset() {
+      if (this.location !== 'origin') {
+        this.moveToOrigin(true); // Force immediate move without animation
+      }
+    },
+    
     initializeElement() {
       const rect = this.$el.getBoundingClientRect();
       if (this.holderId && this.containerId) {
@@ -101,7 +98,7 @@ export default {
           const width = rect.width;
           const height = rect.height;
 
-
+          // Set holder styles
           holder.style.width = `${width}px`;
           holder.style.height = `${height}px`;
           holder.style.backgroundColor = 'rgb(55, 70, 79)';
@@ -109,25 +106,32 @@ export default {
           holder.style.borderRadius = '12px';
           holder.style.boxShadow = '0 2px 0';
 
+          // Set wrapper and container dimensions
           wordWrapper.style.width = `${width}px`;
           wordWrapper.style.height = `${height}px`;
           wordContainer.style.width = `${width}px`;
           wordContainer.style.height = `${height}px`;
         }
       }
+      
+      // Set initial position based on location
+      if (this.location === 'destination') {
+        const destinationInnerContainer = this.destinationInnerContainerRef;
+        if (destinationInnerContainer) {
+          destinationInnerContainer.appendChild(this.$el);
+        }
+      }
     },
+    
     updatePosition(skipEmit = false) {
-      if (!this.$refs.wordElement) return;
-
-      const rect = this.$refs.wordElement.getBoundingClientRect();
+      const rect = this.$el.getBoundingClientRect();
       this.position = {
-        x: rect.x,
-        y: rect.y,
+        x: rect.left,
+        y: rect.top,
         width: rect.width,
         height: rect.height
       };
-
-      // Emit position to parent
+      
       if (!skipEmit) {
         this.$emit('word-positioned', {
           index: this.index,
@@ -137,152 +141,195 @@ export default {
         });
       }
     },
-    setPositionX(x) {
-      if (this.position) {
-        this.position.x = x;
-      }
-    },
-    processQueuedClick(onComplete) {
-      this.handleClick();
-      if (typeof onComplete === 'function') {
-        onComplete();
-      }
-    },
+    
     handleClick() {
-      // Ignore clicks during animation
       if (this.isAnimating) return;
-
-      // Set animating flag and toggle location
+      
       this.isAnimating = true;
+      this.$emit('animation-start', {
+        index: this.index,
+        location: this.location
+      });
+      
+      // Toggle location
       this.location === 'origin' ? this.moveToDestination() : this.moveToOrigin();
-
-      // Emit click event
+      
       this.$emit('click', {
         index: this.index,
         location: this.location,
         position: this.position
       });
     },
+    
     handleTransitionEnd(event) {
-      // Only care about transform property
       if (event.propertyName === 'transform') {
         this.isAnimating = false;
         this.updatePosition();
+        
+        this.$emit('animation-end', {
+          index: this.index,
+          location: this.location,
+          position: this.position
+        });
       }
     },
+    
     handleResize() {
       this.updatePosition(true);
-
-      // Update original position if at origin
+      
       if (this.location === 'origin') {
         this.originalPosition = { ...this.position };
       } else if (this.location === 'destination') {
-        this.moveToDestination();
+        this.repositionInDestination();
       }
     },
-    moveToDestination() {
+    
+    moveToDestination(immediate = false) {
       const element = this.$el;
       const destinationContainer = this.destinationContainerRef;
       const destinationInnerContainer = this.destinationInnerContainerRef;
-
+      
       if (!destinationContainer || !destinationInnerContainer) return;
-
-      this.isAnimating = true;
-
-      // Get current position and set holder dimensions
+      
+      // Get current position and update holder dimensions
       const originalRect = element.getBoundingClientRect();
-      const holderElement = document.getElementById(this.holderId);
-      if (holderElement) {
-        holderElement.style.width = `${originalRect.width}px`;
-        holderElement.style.height = `${originalRect.height}px`;
-      }
-
+      this.updateHolderDimensions(originalRect);
+      
       // Calculate target position
+      const targetPosition = this.calculateDestinationPosition(destinationInnerContainer);
+      
+      // Update location and apply transform
+      this.location = 'destination';
+      
+      if (immediate) {
+        // Move immediately without animation
+        destinationInnerContainer.appendChild(element);
+        this.transformValue = '';
+        this.isAnimating = false;
+        this.updatePosition();
+        this.emitLocationChange();
+      } else {
+        // Apply transform for animation
+        const xOffset = targetPosition.x - originalRect.x;
+        const yOffset = targetPosition.y - originalRect.y;
+        this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
+        
+        // Set up one-time handler for animation completion
+        const handleComplete = (e) => {
+          if (e.propertyName === 'transform') {
+            element.removeEventListener('transitionend', handleComplete);
+            this.transformValue = '';
+            destinationInnerContainer.appendChild(element);
+          }
+        };
+        
+        element.addEventListener('transitionend', handleComplete);
+        this.emitLocationChange();
+      }
+    },
+    
+    moveToOrigin(immediate = false) {
+      const element = this.$el;
+      const holder = document.getElementById(this.holderId);
+      
+      if (!holder) return;
+      
+      // Get current position
+      const currentRect = element.getBoundingClientRect();
+      const holderRect = holder.getBoundingClientRect();
+      
+      // Update location
+      this.location = 'origin';
+      
+      if (immediate) {
+        // Move immediately without animation
+        const container = document.getElementById(this.containerId);
+        if (container) {
+          const wordWrapper = container.querySelector('.word-wrapper');
+          if (wordWrapper) {
+            wordWrapper.appendChild(element);
+          } else {
+            container.appendChild(element);
+          }
+        }
+        this.transformValue = '';
+        this.isAnimating = false;
+        this.updatePosition();
+        this.emitLocationChange();
+      } else {
+        // Apply transform for animation
+        const xOffset = holderRect.x - currentRect.x;
+        const yOffset = holderRect.y - currentRect.y;
+        this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
+        
+        // Set up one-time handler for animation completion
+        const handleComplete = (e) => {
+          if (e.propertyName === 'transform') {
+            element.removeEventListener('transitionend', handleComplete);
+            
+            // Move element back to original container
+            const container = document.getElementById(this.containerId);
+            if (container) {
+              const wordWrapper = container.querySelector('.word-wrapper');
+              if (wordWrapper) {
+                wordWrapper.appendChild(element);
+              } else {
+                container.appendChild(element);
+              }
+            }
+            
+            this.transformValue = '';
+          }
+        };
+        
+        element.addEventListener('transitionend', handleComplete);
+        this.emitLocationChange();
+      }
+    },
+    
+    calculateDestinationPosition(destinationInnerContainer) {
       const destinationWords = Array.from(destinationInnerContainer.children);
-      let targetX, targetY;
-
+      const destinationRect = destinationInnerContainer.getBoundingClientRect();
+      
       if (destinationWords.length === 0) {
         // Position at the start if no words in destination
-        const destinationRect = destinationInnerContainer.getBoundingClientRect();
-        targetX = destinationRect.x + 10;
-        targetY = destinationRect.y + 10;
+        return {
+          x: destinationRect.x + 10,
+          y: destinationRect.y + 10
+        };
       } else {
         // Position after the last word
         const lastWord = destinationWords[destinationWords.length - 1];
         const lastWordRect = lastWord.getBoundingClientRect();
-
-        targetX = lastWordRect.x + lastWordRect.width + 10;
-        targetY = lastWordRect.y;
+        
+        return {
+          x: lastWordRect.x + lastWordRect.width + 10,
+          y: lastWordRect.y
+        };
       }
-
-      // Calculate offsets and update location
-      const xOffset = targetX - originalRect.x;
-      const yOffset = targetY - originalRect.y;
-      this.location = 'destination';
-      this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
-
-      // Handle transition end
-      const handleTransitionComplete = (e) => {
-        if (e.propertyName === 'transform') {
-          element.removeEventListener('transitionend', handleTransitionComplete);
-          this.transformValue = '';
-          destinationInnerContainer.appendChild(element);
-          this.isAnimating = false;
-        }
-      };
-
-      element.addEventListener('transitionend', handleTransitionComplete);
-      this.emitLocationChange();
     },
-    moveToOrigin() {
-      const element = this.$el;
-      const holder = document.getElementById(this.holderId);
-
-      if (!holder) return;
-
-      this.isAnimating = true;
-
-      // Calculate target position
-      const currentRect = element.getBoundingClientRect();
-      const holderRect = holder.getBoundingClientRect();
-      const targetX = holderRect.x;
-      const targetY = holderRect.y;
-
-      // Calculate offsets and update location
-      const xOffset = targetX - currentRect.x;
-      const yOffset = targetY - currentRect.y;
-      this.location = 'origin';
-      this.transformValue = `translate(${xOffset}px, ${yOffset}px)`;
-
-      // Handle transition end
-      const handleTransitionComplete = (e) => {
-        if (e.propertyName === 'transform') {
-          element.removeEventListener('transitionend', handleTransitionComplete);
-          this.transformValue = '';
-
-          // Move back to original container
-          const originalContainer = document.getElementById(this.containerId);
-          if (originalContainer) {
-            const wordWrapper = originalContainer.querySelector('.word-wrapper');
-            if (wordWrapper) {
-              wordWrapper.appendChild(element);
-            } else {
-              originalContainer.appendChild(element);
-            }
-          }
-
-          this.isAnimating = false;
-        }
-      };
-
-      element.addEventListener('transitionend', handleTransitionComplete);
-      this.emitLocationChange();
+    
+    updateHolderDimensions(rect) {
+      const holderElement = document.getElementById(this.holderId);
+      if (holderElement) {
+        holderElement.style.width = `${rect.width}px`;
+        holderElement.style.height = `${rect.height}px`;
+      }
     },
+    
+    repositionInDestination() {
+      const destinationInnerContainer = this.destinationInnerContainerRef;
+      if (destinationInnerContainer && this.location === 'destination') {
+        this.moveToDestination(true);
+      }
+    },
+    
     emitLocationChange() {
       this.$emit('location-change', {
         index: this.index,
         location: this.location,
-        position: this.position
+        position: this.position,
+        word: this.text
       });
     }
   }
@@ -309,8 +356,6 @@ export default {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1;
-
-
 }
 
 .word::before {
@@ -331,7 +376,6 @@ export default {
 .word:active {
   transform: translateY(2px) translateZ(0) !important;
 }
-
 
 /* .word.in-origin {
   background-color: #fff;

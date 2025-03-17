@@ -68,10 +68,21 @@ export default {
         showResult: { type: Boolean, default: false },
         isCorrect: { type: Boolean, default: false },
         canCheck: { type: Boolean, default: false },
-        correctAnswer: { type: String, default: '' }
+        correctAnswer: { type: String, default: '' },
+        correctStreak: { type: Number, default: 0 }
     },
-    setup() {
+    setup(props) {
+        console.log('Footer initialized with canCheck:', props.canCheck);
+        
         const handleCheck = () => {
+            console.log('Check button clicked, canCheck status:', props.canCheck);
+            if (!props.canCheck) {
+                console.log('Preventing check - no words selected');
+                return;
+            }
+            
+            console.log('window.mainLayout', window.mainLayout);
+            
             if (window.mainLayout?.checkAnswer) {
                 window.mainLayout.checkAnswer();
             }

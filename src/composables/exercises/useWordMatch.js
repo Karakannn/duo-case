@@ -36,7 +36,16 @@
     // Bir seçenek seç
     const selectOption = (option) => {
       selectedOption.value = option;
-      exercise.updateCheckButton(true);
+      
+      // "Kontrol Et" butonunu aktifleştir
+      if (window.mainLayout) {
+        // window.mainLayout.canCheck bir ref objesi veya boolean değer olabilir
+        if (typeof window.mainLayout.canCheck === 'object' && window.mainLayout.canCheck.value !== undefined) {
+          window.mainLayout.canCheck.value = true;
+        } else {
+          window.mainLayout.canCheck = true;
+        }
+      }
     };
     
     // Cevabı kontrol et
