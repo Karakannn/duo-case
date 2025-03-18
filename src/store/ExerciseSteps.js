@@ -4,30 +4,30 @@
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
 
-    
     {
-      type: 'word-builder',
+      type: 'picture-match',
       id: 1,
       stepProgress: 0,
       display: {
-        type: 'character',
-        text: "I bought a new book",
-        title: "Build this sentence",
-        characterImage: "https://kasratabrizi.github.io/duolingo-exercise-project/assets/duo.svg" // Opsiyonel karakter görseli
+        type: 'title',
+        title: "Görsele uygun kelimeyi seçin",
+        category: "YENİ KELİME",
+        imageUrl: '' // Opsiyonel
       },
       question: {
-        text: 'Yeni bir kitap aldım',
-        meaning: 'I bought a new book',
-        word: 'Book',
-        parts: ['Yeni', 'bir', 'kitap', 'aldım'],
-        correctSequence: [0, 1, 2, 3]
+        correctOption: 'coffee',
+        options: [
+          { name: 'milk', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/645fa42dcea02c7e2970a1285e321562' },
+          { name: 'coffee', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/6fd84b8a838c43c4a84b44b08b10177e' },
+          { name: 'tea', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/18a521f1507cb86689faa5b2e8277703' },
+        ],
       }
     },
 
     {
       type: 'fill-in-blank',
       id: 2,
-      stepProgress: 40, // İlerleme yüzdesi
+      stepProgress: 30, // İlerleme yüzdesi
       display: {
         type: 'title',
         title: "Cümledeki boşluğu doldurun",
@@ -35,56 +35,15 @@
         imageUrl: "" // Opsiyonel
       },
       question: {
-        sentence: 'I ___ to school every day.',
+        sentence: 'I ___ to school every day .',
         options: ['go', 'went', 'going', 'gone'],
         correctAnswer: 'go'
       }
     },
-
-    {
-      type: 'word-match',
-      id: 3,
-      stepProgress: 20,
-      display: {
-        type: 'character',
-        title:"Doğru anlamı seçin",
-        category: "YENİ KELİME",
-        text: "Good bye",
-        characterImage: "https://design.duolingo.com/b9352459555a7ded7c55.svg" // Opsiyonel karakter görseli
-      },
-      question: {
-        word: 'Goodbye',
-        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
-        correctOption: 'Güle güle'
-      }
-    },
-   
-    // PictureMatch Egzersizi Örneği
-    {
-      type: 'picture-match',
-      id: 4,
-      stepProgress: 30,
-      display: {
-        type: 'title',
-        title: "Görsele uygun kelimeyi seçin",
-        category: "YENİ KELİME",
-        imageUrl: '/images/question/dog.jpg' // Opsiyonel
-      },
-      question: {
-        imageUrl: '/images/question/dog.jpg',
-        options: [
-          { name: 'milk', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/645fa42dcea02c7e2970a1285e321562' },
-          { name: 'coffee', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/6fd84b8a838c43c4a84b44b08b10177e' },
-          { name: 'tea', imageUrl: 'https://d2pur3iezf4d1j.cloudfront.net/images/18a521f1507cb86689faa5b2e8277703' },
-        ],
-        correctOption: 'coffee'
-      }
-    },
-
     {
       type: 'matching',
-      id: 5,
-      stepProgress: 0,
+      id: 3,
+      stepProgress: 40,
       display: {
         type: 'title',
         title: "Eşleştirmeleri tamamlayın",
@@ -115,6 +74,52 @@
         ]
       }
     },
+   
+
+    {
+      type: 'word-builder',
+      id: 4,
+      stepProgress: 0,
+      display: {
+        type: 'character',
+        text: "I bought a new book",
+        title: "Build this sentence",
+        characterImage: "https://kasratabrizi.github.io/duolingo-exercise-project/assets/duo.svg" // Opsiyonel karakter görseli
+      },
+      question: {
+        text: 'Yeni bir kitap aldım',
+        meaning: 'I bought a new book',
+        word: 'Book',
+        parts: ['Yeni', 'bir', 'kitap', 'aldım'],
+        correctSequence: [0, 1, 2, 3]
+      }
+    },
+
+    {
+      type: 'word-match',
+      id: 5,
+      stepProgress: 20,
+      display: {
+        type: 'character',
+        title: "Doğru anlamı seçin",
+        category: "YENİ KELİME",
+        text: "Good bye",
+        characterImage: "https://design.duolingo.com/b9352459555a7ded7c55.svg" // Opsiyonel karakter görseli
+      },
+      question: {
+        word: 'Goodbye',
+        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
+        correctOption: 'Güle güle'
+      }
+    },
+
+
+
+
+
+
+
+
 
     // PictureMatch Egzersizi Örneği
     {

@@ -4,14 +4,8 @@
       <div ref="destination" class="destination"></div>
       <div ref="origin" class="origin">
         <div v-for="(word, i) in processedWords" :key="i" class="word-container" :data-word-index="i">
-          <Word 
-            :text="word" 
-            :index="i" 
-            :initial-location="'origin'"
-            @word-click="handleWordClick"
-            @animation-start="wordBuilder.startAnimation"
-            @animation-end="wordBuilder.endAnimation"
-          />
+          <Word :text="word" :index="i" :initial-location="'origin'" @word-click="handleWordClick"
+            @animation-start="wordBuilder.startAnimation" @animation-end="wordBuilder.endAnimation" />
         </div>
       </div>
     </div>
@@ -35,18 +29,18 @@ export default {
     const wordBuilder = window.useWordBuilder({ exerciseData: props.exerciseData });
     const destination = ref(null);
     const origin = ref(null);
-    
+
     // Process words to ensure they're strings
     const processedWords = computed(() => {
       const rawWords = wordBuilder.wordList.value || [];
       return rawWords.map(word => String(word));
     });
-    
+
     // Handle word click
     const handleWordClick = ({ element, location, index }) => {
       if (wordBuilder.isAnimating.value) return;
-      
-      location === 'origin' 
+
+      location === 'origin'
         ? moveWord(element, index, 'origin', 'destination')
         : moveWord(element, index, 'destination', 'origin');
     };
@@ -57,49 +51,49 @@ export default {
       const container = fromLocation === 'origin'
         ? wordElement.closest('.word-container')
         : origin.value.querySelector(`.word-container[data-word-index="${index}"]`);
-      
+
       if (!container) return;
-      
+
       // Set up animation
       const id = Date.now();
-      
+
       if (fromLocation === 'origin') {
         container.dataset.id = id;
-        
+
         // Preserve space in origin
         container.style.height = `${wordElement.offsetHeight}px`;
         container.style.width = `${wordElement.offsetWidth}px`;
       }
-      
+
       // Find siblings if moving from destination
       const siblings = fromLocation === 'destination'
         ? Array.from(destination.value.querySelectorAll('.word')).filter(w => w !== wordElement)
         : [];
-      
+
       // Capture initial positions
       const first = wordElement.getBoundingClientRect();
       siblings.forEach(sib => sib.__first = sib.getBoundingClientRect());
-      
+
       // Move element
       const targetContainer = toLocation === 'destination' ? destination.value : container;
       targetContainer.appendChild(wordElement);
-      
+
       // Get final positions
       const last = wordElement.getBoundingClientRect();
       siblings.forEach(sib => sib.__last = sib.getBoundingClientRect());
-      
+
       // Update word state
       wordElement.__component?.setLocation(toLocation);
-      
+
       // Update logic state
       wordBuilder.moveWord(index, toLocation);
-      
+
       // Run animations
       wordElement.__component?.performFlip({ first, last });
       siblings.forEach(sib => {
         sib.__component?.performFlip({ first: sib.__first, last: sib.__last });
       });
-      
+
       // Clean up if moving to origin
       if (toLocation === 'origin') {
         setTimeout(() => {
@@ -110,25 +104,29 @@ export default {
       }
     };
 
-    // Check answer
+    // Check answer - now triggers the Mexican wave animation for all words
     const checkAnswer = () => {
       const result = wordBuilder.checkAnswer();
+
+      // Get all words in destination area
+      const words = Array.from(destination.value.querySelectorAll('.word'));
       
-      destination.value.querySelectorAll('.word').forEach(word => {
+      // Trigger Mexican wave animation on each word
+      words.forEach((word, idx) => {
         word.__component?.setFeedback(result.isCorrect);
       });
-      
+
       return result;
     };
-    
+
     // Reset after checking
     const onContinue = () => {
       document.querySelectorAll('.word').forEach(word => {
         word.__component?.resetFeedback();
       });
-      
+
       wordBuilder.reset();
-      
+
       if (destination.value) {
         destination.value.innerHTML = '';
       }
@@ -137,7 +135,7 @@ export default {
     // Initialize
     onMounted(() => {
       wordBuilder.init();
-      
+
       // Register with global systems
       window.activeExerciseComponent = {
         checkAnswer,
@@ -145,7 +143,7 @@ export default {
         canCheck: ref(false),
         renderResultContent: () => null
       };
-      
+
       if (window.mainLayout) {
         window.mainLayout.activeExerciseComponent = window.activeExerciseComponent;
       }
@@ -177,20 +175,17 @@ export default {
 
 .exercise-component {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 1rem;
+  flex-direction: column;
+  align-items: start;
   width: 100%;
+  max-width: 600px;
 }
 
 .words {
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
-  border: 1px solid #596265;
-  border-radius: 1rem;
-  width: 350px;
-  max-width: 100%;
+  display: grid;
+  grid-auto-rows: 1fr;
+  grid-row-gap: 24px;
+  width: 100%;
 }
 
 .destination {
@@ -198,17 +193,10 @@ export default {
   flex-flow: row wrap;
   align-items: flex-start;
   align-content: flex-start;
-  margin: 0 0 4rem;
-  min-height: 100px;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 44px,
-    #263032 44px,
-    #263032 45px,
-    transparent 45px,
-    transparent 48px
-  );
+  min-height: 120px;
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 48px, var(--color-swan) 48px, var(--color-swan) 49px, var(--color-swan) 49px, transparent 52px);
+  border-top: 2px solid var(--color-swan);
+
 }
 
 .origin {

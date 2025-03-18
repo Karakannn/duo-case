@@ -12,39 +12,31 @@
       </div>
 
       <!-- 5x5 eşleştirme gridi -->
-      <div class="match-grid-container">
-        <!-- Sol taraf (sorular/ifadeler) -->
-        <div class="left-column">
-          <SelectionCard v-for="(item, index) in leftItems" :key="`left-${index}`" :isSelected="selectedLeft === index"
-            :isMatched="matchedItems.left.includes(index)" :isCorrectMatch="correctMatches.includes(index)"
-            :isWrongMatch="wrongMatches.left.includes(index)"
-            :isDisabled="matchedItems.left.includes(index) || isAnimating" @select="selectItem('left', index)"
-            class="match-item">
-            <div class="card-text-container">
-              <span class="card-text-index">{{ index + 1 }}</span>
-              <div class="card-text">
-                <span>{{ item.text }}</span>
-              </div>
-            </div>
-          </SelectionCard>
+      <!-- Sol taraf (sorular/ifadeler) -->
+      <SelectionCard v-for="(item, index) in leftItems" :key="`left-${index}`" :isSelected="selectedLeft === index"
+        :isMatched="matchedItems.left.includes(index)" :isCorrect="correctMatches.includes(index)" :isDisabled="matchedItems.left.includes(index) ||
+          (isAnimating && (index === selectedLeft || wrongMatches.left.includes(index)))"
+        @select="selectItem('left', index)" class="match-item">
+        <div class="card-text-container">
+          <span class="card-text-index">{{ index + 1 }}</span>
+          <div class="card-text">
+            <span>{{ item.text }}</span>
+          </div>
         </div>
+      </SelectionCard>
 
-        <!-- Sağ taraf (karşılıklar/cevaplar) -->
-        <div class="right-column">
-          <SelectionCard v-for="(item, index) in rightItems" :key="`right-${index}`"
-            :isSelected="selectedRight === index" :isMatched="matchedItems.right.includes(index)"
-            :isCorrectMatch="correctMatches.includes(index)" :isWrongMatch="wrongMatches.right.includes(index)"
-            :isDisabled="matchedItems.right.includes(index) || isAnimating" @select="selectItem('right', index)"
-            class="match-item">
-            <div class="card-text-container">
-              <span class="card-text-index">{{ index + 1 }}</span>
-              <div class="card-text">
-                <span>{{ item.text }}</span>
-              </div>
-            </div>
-          </SelectionCard>
+      <!-- Sağ taraf (karşılıklar/cevaplar) -->
+      <SelectionCard v-for="(item, index) in rightItems" :key="`right-${index}`" :isSelected="selectedRight === index"
+        :isMatched="matchedItems.right.includes(index)" :isCorrect="correctMatches.includes(index)" :isDisabled="matchedItems.right.includes(index) ||
+          (isAnimating && (index === selectedRight || wrongMatches.right.includes(index)))"
+        @select="selectItem('right', index)" class="match-item">
+        <div class="card-text-container">
+          <span class="card-text-index">{{ index + 1 }}</span>
+          <div class="card-text">
+            <span>{{ item.text }}</span>
+          </div>
         </div>
-      </div>
+      </SelectionCard>
     </div>
   </div>
 </template>
@@ -131,7 +123,7 @@ export default {
         isAnimating.value = true;
 
         if (isCorrect) {
-          // Doğru eşleşme - yeşil border göster
+          // Doğru eşleşme - correctMatches'e soldaki ve sağdaki indexleri ekle
           correctMatches.value = [selectedLeft.value, selectedRight.value];
 
           // Eşleştirilmiş öğeleri geçici olarak kaydet
@@ -147,7 +139,7 @@ export default {
 
           // 1 saniye sonra doğru eşleşmeyi kaydet ve seçimleri temizle
           setTimeout(() => {
-            // Eşleştirilmiş öğeleri kaydet
+            // Eşleştirilmiş öğeleri kaydet - animasyon SONRASI disabled olmaları için
             matchedItems.value.left.push(tempLeftIndex);
             matchedItems.value.right.push(tempRightIndex);
 
@@ -169,8 +161,8 @@ export default {
           }, 1000);
         } else {
           // Yanlış eşleşme - kırmızı border göster
-          wrongMatches.value.left.push(selectedLeft.value);
-          wrongMatches.value.right.push(selectedRight.value);
+          wrongMatches.value.left = [selectedLeft.value];
+          wrongMatches.value.right = [selectedRight.value];
 
           // 1 saniye sonra yanlış eşleşmeyi temizle
           setTimeout(() => {
@@ -263,31 +255,19 @@ export default {
 
 <style scoped>
 .exercise-component {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .matching-exercise {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.match-grid-container {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  gap: 20px;
-}
-
-.left-column,
-.right-column {
-  display: flex;
-  flex-direction: column;
-  width: 48%;
-  gap: 12px;
+  display: grid;
+  grid-gap: 16px 20px;
+  grid-auto-flow: column;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(5, 76px);
+  justify-content: center;
+  max-height: 100%;
 }
 
 .match-item {
@@ -296,8 +276,9 @@ export default {
   min-height: 0px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 12px 0px;
+  height: 100%;
 }
 
 
@@ -337,23 +318,22 @@ export default {
   font-weight: 900;
 }
 
-/* Selected state styling for card-text-index */
+/* /
 :deep(.selection-card.selected .card-text-index) {
   border-color: var(--color-blue-jay);
   color: var(--color-whale);
 }
 
-/* Correct match state styling for card-text-index */
 :deep(.selection-card.correct-match .card-text-index) {
   border-color: var(--color-owl);
   color: var(--color-owl);
 }
 
-/* Wrong match state styling for card-text-index */
+
 :deep(.selection-card.wrong-match .card-text-index) {
   border-color: var(--color-cardinal);
   color: var(--color-cardinal);
-}
+} */
 
 /* Animasyon Stilleri */
 @keyframes pulse {
@@ -412,15 +392,24 @@ export default {
   }
 }
 
-/* Responsive Tasarım */
-@media (max-width: 768px) {
-  .match-grid-container {
-    flex-direction: column;
+@media (max-width: 700px) {
+  .card-text-index {
+    display: none;
+  }
+}
+
+@media (min-width: 700px) {
+  .match-item {
+    justify-content: flex-start;
+    height: auto;
+    padding: 8px 0px;
   }
 
-  .left-column,
-  .right-column {
-    width: 100%;
+  .matching-exercise {
+    grid-gap: 10px 30px;
+    grid-template-columns: repeat(2, 255px);
+    grid-template-rows: repeat(5, 1fr);
+
   }
 }
 </style>

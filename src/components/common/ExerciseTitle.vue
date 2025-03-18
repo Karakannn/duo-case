@@ -13,7 +13,7 @@
     </div>
     <h5 class="text-white">{{ title }}</h5>
     <div v-if="imageUrl" class="question-image-container">
-      <img :src="imageUrl" alt="Soru Görseli" class="question-image">
+      <img :src="imageUrl" class="question-image">
     </div>
   </div>
 </template>

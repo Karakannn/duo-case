@@ -1,6 +1,13 @@
 <template>
     <div ref="wordElement" class="fill-word"
-        :class="{ 'in-origin': location === 'origin', 'in-destination': location === 'destination' }"
+        :class="{ 
+            'in-origin': location === 'origin', 
+            'in-destination': location === 'destination',
+            'word-correct': isCorrect,
+            'word-incorrect': isIncorrect,
+            'wave-animation': isWaving,
+            'disabled': isDisabled
+        }"
         @click="handleClick">
         {{ text }}
     </div>
@@ -21,12 +28,25 @@ export default {
         blankElementRef: {
             type: [Object, HTMLElement],
             required: true
+        },
+        isCorrect: {
+            type: Boolean,
+            default: false
+        },
+        isIncorrect: {
+            type: Boolean,
+            default: false
+        },
+        isDisabled: {
+            type: Boolean,
+            default: false
         }
     },
     data() {
         return {
             location: 'origin',
             isAnimating: false,
+            isWaving: false,
             uniqueId: `word-${Math.random().toString(36).substr(2, 9)}`,
             containerUniqueId: `container-${Math.random().toString(36).substr(2, 9)}`,
             animation: null,
@@ -34,6 +54,14 @@ export default {
             originalContainerRef: null,
             wordWidth: 0,
             wordHeight: 0
+        }
+    },
+    watch: {
+        isCorrect(newVal) {
+            if (newVal) this.startWaveAnimation();
+        },
+        isIncorrect(newVal) {
+            if (newVal) this.startWaveAnimation();
         }
     },
     mounted() {
@@ -120,7 +148,7 @@ export default {
         },
 
         handleClick() {
-            if (this.isAnimating) return;
+            if (this.isAnimating || this.isDisabled) return;
 
             console.log(`Word ${this.text} clicked, current location: ${this.location}`);
 
@@ -129,6 +157,15 @@ export default {
                 text: this.text,
                 location: this.location
             });
+        },
+
+        startWaveAnimation() {
+            this.isWaving = true;
+            
+            // Reset wave animation after it completes
+            setTimeout(() => {
+                this.isWaving = false;
+            }, 500); // Animation duration
         },
 
         handleResize() {
@@ -231,7 +268,7 @@ export default {
                         ],
                         {
                             duration: 200, // Daha hızlı animasyon
-                            easing: 'ease-out'
+                            easing: 'ease'
                         }
                     );
 
@@ -382,41 +419,77 @@ export default {
 
 <style scoped>
 .fill-word {
-    position: relative;
-    cursor: pointer;
-    white-space: nowrap;
-    font-size: 19px;
-    font-weight: 600;
-    letter-spacing: normal;
-    text-transform: none;
-    background: none;
-    border: solid transparent;
-    border-radius: 12px;
-    border-width: 2px 2px 4px;
-    color: rgb(241, 247, 251);
-    height: auto;
-    padding: 12px 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    will-change: transform;
-    font-size: 19px;
-    z-index: 1;
+  appearance: none;
+  all: unset;
+  box-sizing: border-box;
+  background: #122023;
+  border: 1px solid #596265;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 700;
+  user-select: none;
+  color: #fff;
+  font-size: 16px;
+  position: relative;
+  z-index: 1;
 }
 
-.fill-word::before {
-    background-color: var(--internal-word-background);
-    border: 3px solid var(--internal-word-border);
-    border-radius: 12px;
-    bottom: -2px;
-    box-shadow: 0 2px 0;
-    color: var(--internal-word-border);
-    content: "";
-    left: -2px;
-    position: absolute;
-    right: -2px;
-    top: -2px;
-    z-index: -1;
+.fill-word:active,
+.fill-word:focus {
+  background: #1a2f33;
 }
 
-.fill-word.in-destination {}
+.fill-word.in-destination {
+  margin: 0 0.125rem 0.5rem;
+}
+
+.fill-word.in-origin {
+  transition: transform 0.25s ease;
+}
+
+.fill-word.word-correct {
+  color: var(--internal-color-success) !important;
+  background-color: var(--internal-background-color-success);
+  border: 2px solid var(--internal-border-success);
+}
+
+.fill-word.word-incorrect {
+  border: 2px solid var(--internal-border-error, #e86f6f);
+  color: var(--internal-color-error, #e86f6f) !important;
+}
+
+.fill-word.disabled {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Mexican Wave Animation */
+@keyframes mexicanWave {
+  0% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.wave-animation {
+  animation: mexicanWave 0.5s ease;
+}
+
+@media (min-width: 700px) {
+  .fill-word {
+    font-size: 19px;
+  }
+}
 </style>

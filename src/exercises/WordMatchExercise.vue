@@ -5,7 +5,7 @@
       <div class="options-container">
         <div class="options-list">
           <option-button v-for="(option, index) in options" :key="option" :number="index + 1" :text="option"
-            :isSelected="selectedOption === option" :isCorrect="isAnswerChecked && option === correctOption"
+            :isSelected="selectedOption === option" :isCorrect="isAnswerChecked && selectedOption === correctOption && option === correctOption"
             :isDisabled="isAnswerChecked" :className="'word-match-option'" @select="handleOptionSelect(option)" />
         </div>
       </div>
@@ -128,7 +128,15 @@ export default {
 
     // Check answer
     const checkAnswer = () => {
-      if (!selectedOption.value) return false;
+      if (!selectedOption.value) {
+        // If no selection, still provide the correct answer
+        console.log('No selection, but providing correct answer:', correctOption.value);
+        return {
+          isCorrect: false,
+          userAnswer: '',
+          correctAnswer: correctOption.value
+        };
+      }
 
       const isCorrect = selectedOption.value === correctOption.value;
 
@@ -176,6 +184,8 @@ export default {
         moveToNextExercise();
 
         // Reset UI state
+        isAnswerChecked.value = false;
+        
         if (window.mainLayout) {
           if (window.mainLayout.canCheck) {
             window.mainLayout.canCheck.value = false;

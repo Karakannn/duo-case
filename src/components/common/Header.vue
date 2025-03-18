@@ -8,12 +8,15 @@
 
       <div class="progress-container">
         <div class="progress" style="height: 16px;">
-          <div class="progress-bar-inner" :style="`width: ${progress}%`" role="progressbar"></div>
+          <div class="progress-bar-inner" 
+               :style="`width: ${progress}%`" 
+               :class="getProgressColorClass(progress)"
+               role="progressbar"></div>
         </div>
 
         <!-- Streak göstergesi - 2 ve üzeri streak varsa göster -->
         <div v-if="correctStreak >= 2" class="streak-counter">
-          <span>{{ correctStreak }} 🔥</span>
+          <span>ART ARDA {{ correctStreak }}</span>
         </div>
       </div>
 
@@ -44,10 +47,22 @@ export default {
     }
   },
   setup(props) {
-    const { ref, watchEffect } = Vue;
+    const { ref, watchEffect, computed } = Vue;
 
     // Hearts değerini tutacak lokal değişken
     const localHearts = ref(props.hearts);
+
+    // Progress durumuna göre renk sınıfını döndüren hesaplanmış özellik
+    const getProgressColorClass = (progressValue) => {
+      console.log('Progress değeri:', progressValue);
+      
+      if (progressValue >= 66.67) {
+        return 'progress-orange';
+      } else if (progressValue >= 33.33) {
+        return 'progress-yellow';
+      }
+      return 'progress-green';
+    };
 
     // Props'tan ve globalStore'dan hearts değerini izle
     watchEffect(() => {
@@ -68,7 +83,8 @@ export default {
     };
 
     return {
-      localHearts
+      localHearts,
+      getProgressColorClass
     };
   }
 }
@@ -110,20 +126,31 @@ export default {
   background-color: var(--color-owl);
   height: 100%;
   border-radius: 8px;
-  transition: width 0.5s ease-in-out;
+  transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
   box-shadow: 0 0 5px rgba(255, 75, 75, 0.5);
+}
+
+/* Progress renk sınıfları */
+.progress-green {
+  background-color: var(--color-owl);
+}
+
+.progress-yellow {
+  background-color: #FFD700;
+}
+
+.progress-orange {
+  background-color: rgb(255, 171, 51);
 }
 
 .streak-counter {
   position: absolute;
-  top: -25px;
-  font-weight: bold;
+  top: -20px;
+  left: 0;
+  font-size: 12px;
+  font-weight: 900;
   color: var(--color-owl);
-  background-color: #fff;
-  padding: 3px 8px;
-  border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  animation: pulse 1.5s infinite;
+  animation: pulse 0.2s ease;
 }
 
 @keyframes pulse {

@@ -33,9 +33,9 @@
                         </div>
 
                         <div class="incorrect-text">
-                            <div class="answer">
+                            <div class="answer" v-if="correctAnswer">
                                 <h5>Doğru cevap:</h5>
-                                <span v-if="correctAnswer">{{ correctAnswer }}</span>
+                                <span>{{ correctAnswer }}</span>
                             </div>
 
                             <div class="report">
@@ -50,7 +50,7 @@
             </div>
 
             <Button class="skip-button" v-if="!showResult" :id="showResult ? 'continueButton' : 'checkAnswerButton'"
-                :variant="'secondary'">
+                :variant="'secondary'" @click="handleSkip()">
                 GEC
             </Button>
 
@@ -93,6 +93,15 @@ export default {
             }
         };
 
+        const handleSkip = () => {
+            console.log('Skip button clicked');
+            
+            // Skip is treated like an incorrect answer
+            if (window.mainLayout?.skipExercise) {
+                window.mainLayout.skipExercise();
+            }
+        };
+
         const handleContinue = () => {
             if (window.mainLayout?.nextExercise) {
                 window.mainLayout.nextExercise();
@@ -106,6 +115,7 @@ export default {
 
         return {
             handleCheck,
+            handleSkip,
             handleContinue
         };
     }

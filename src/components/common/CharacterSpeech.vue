@@ -115,7 +115,7 @@ export default {
 }
 
 .word-text {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--color-eel);
 }
@@ -137,6 +137,11 @@ export default {
 
   .character-container-inner {
     gap: 24px;
+  }
+
+  .word-text {
+    font-size: 20px;
+
   }
 }
 </style>

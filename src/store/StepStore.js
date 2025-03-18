@@ -160,6 +160,21 @@
       }
     }
 
+    function resetHearts() {
+      hearts.value = 5;
+      console.log(`StepStore - Canlar yenilendi. Yeni can: ${hearts.value}`);
+      
+      // Global değişkenleri güncelle
+      if (window.globalStore) {
+        window.globalStore.hearts = hearts.value;
+      }
+      
+      // Header bileşenini doğrudan güncelle
+      if (window.updateHeaderHearts) {
+        window.updateHeaderHearts(hearts.value);
+      }
+    }
+
     function increaseScore(points = 1) {
       score.value += points;
     }
@@ -212,6 +227,7 @@
       previousStep,
       changeSequence,
       decreaseHearts,
+      resetHearts,
       increaseScore,
       triggerRefresh,
       

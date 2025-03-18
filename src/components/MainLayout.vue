@@ -14,14 +14,32 @@
           :text="currentExerciseData.display.text" :character-image="currentExerciseData.display.characterImage"
           :title="currentExerciseData.display.title" />
 
-        <component :is="activeComponent" class="exercise" :exercise-data="currentExerciseData" />
+        <component :is="activeComponent" class="exercise-component" :exercise-data="currentExerciseData" />
       </div>
     </div>
 
     <Footer :showResult="showResult" :isCorrect="isCorrect" :canCheck="canCheck" :correctAnswer="correctAnswer"
       :correctStreak="correctStreak" />
 
-    <HeartLostModal v-if="showModal && !isCorrect" :show="showModal" :remainingHearts="hearts" @continue="closeModal" />
+    <HeartLostModal 
+      v-if="showHeartLostModal && !isCorrect" 
+      :show="showHeartLostModal" 
+      :remainingHearts="hearts" 
+      @continue="closeModal" 
+    />
+    
+    <NoHeartsModal 
+      v-if="showNoHeartsModal" 
+      :show="showNoHeartsModal" 
+      :totalHearts="5" 
+      @restart="restartExercise" 
+    />
+    
+    <CompletionModal 
+      v-if="showCompletionModal" 
+      :show="showCompletionModal" 
+      @restart="restartExercise" 
+    />
   </div>
 </template>
 
@@ -33,8 +51,10 @@ export default {
     Header: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Header.vue", window.sfcOptions)),
     Footer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Footer.vue", window.sfcOptions)),
     HeartLostModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/HeartLostModal.vue", window.sfcOptions)),
+    NoHeartsModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/NoHeartsModal.vue", window.sfcOptions)),
     ExerciseTitle: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseTitle.vue", window.sfcOptions)),
-    CharacterSpeech: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/CharacterSpeech.vue", window.sfcOptions))
+    CharacterSpeech: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/CharacterSpeech.vue", window.sfcOptions)),
+    CompletionModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/CompletionModal.vue", window.sfcOptions))
   },
   setup() {
     // State
@@ -42,7 +62,9 @@ export default {
     const activeExercise = ref(null);
     const canCheck = ref(false);
     const showResult = ref(false);
-    const showModal = ref(false);
+    const showHeartLostModal = ref(false);
+    const showNoHeartsModal = ref(false);
+    const showCompletionModal = ref(false);
     const isCorrect = ref(true);
     const correctAnswer = ref('coffee');
     const activeExerciseContent = ref(null);
@@ -79,6 +101,14 @@ export default {
       return 'KONTROL ET';
     });
 
+    // Update progress based on current exercise
+    watch(() => currentExerciseData.value, (newExerciseData) => {
+      if (newExerciseData && typeof newExerciseData.stepProgress === 'number') {
+        console.log('MainLayout - Updating progress from exercise data:', newExerciseData.stepProgress);
+        progress.value = newExerciseData.stepProgress;
+      }
+    }, { immediate: true });
+
     // MainLayout'u global olarak erişilebilir kıl
     const exposeMainLayout = () => {
       window.mainLayout = {
@@ -89,7 +119,8 @@ export default {
         nextExercise,
         checkAnswer,
         continueAction,
-        resetFooter
+        resetFooter,
+        skipExercise
       };
 
       Object.defineProperty(window.mainLayout, 'canCheck', {
@@ -193,56 +224,139 @@ export default {
       console.log('checkAnswer', canCheck.value);
       console.log('window.activeExerciseComponent', window.activeExerciseComponent);
 
-
       if (window.activeExerciseComponent && typeof window.activeExerciseComponent.checkAnswer === 'function') {
         const result = window.activeExerciseComponent.checkAnswer();
         isCorrect.value = result.isCorrect;
         showResult.value = true;
         correctAnswer.value = result.correctAnswer;
 
+        // Get step information
+        const currentStep = stepStore.currentStepId.value;
+        const currentStepData = window.exerciseStepsManager.getStepById(currentStep);
+        const nextStepData = window.exerciseStepsManager.getStepById(currentStep + 1);
+        const stepsData = window.exerciseStepsManager.getActiveSequenceSteps();
+        const totalSteps = stepsData.length;
+        
+        console.log(`Current step ${currentStep} with progress: ${currentStepData.stepProgress}`);
+        
         if (isCorrect.value) {
+          // Update streak for correct answers
           correctStreak.value++;
-          console.log(`Correct! Streak is now: ${correctStreak.value}`);
-
-          if (stepStore) {
-            progress.value = stepStore.currentProgress.value;
-            console.log(`Correct answer, updating progress to: ${progress.value}%`);
+          console.log(`Streak increased to: ${correctStreak.value}`);
+          
+          // Update progress immediately when answer is correct
+          if (nextStepData) {
+            // Use the next step's progress value
+            progress.value = nextStepData.stepProgress;
+            console.log(`Answer is correct! Updating progress to: ${progress.value}`);
+          } else {
+            // If no next step (reached the end), set progress to 100%
+            progress.value = 100;
+            console.log(`Final exercise completed! Progress set to 100%`);
+            
+            // Show completion modal when the last exercise is completed correctly
+            setTimeout(() => {
+              showCompletionModal.value = true;
+            }, 500);
           }
         } else {
+          // Reset streak for incorrect answers
           correctStreak.value = 0;
-          progress.value = 0;
-
-          if (stepStore) {
-            console.log('MainLayout - Yanlış cevap, can azaltılıyor');
-            stepStore.decreaseHearts();
-            showModal.value = true;
+          console.log(`Streak reset to 0`);
+          
+          // Show heart lost modal if hearts are still available
+          if (hearts.value > 0) {
+            showHeartLostModal.value = true;
           }
+          
+          console.log(`Answer is incorrect, keeping progress at: ${progress.value}`);
         }
+        
+        return result;
       }
     };
 
     const continueAction = () => {
-      if (showResult.value) {
-        if (isCorrect.value) {
-          if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
-            window.activeExerciseComponent.onContinue();
-          }
+      console.log('continueAction');
+      
+      if (!stepStore) return;
 
-          if (correctStreak.value >= 2 && stepStore) {
-            progress.value = stepStore.currentProgress.value;
-            console.log(`Streak is ${correctStreak.value}, continuing with progress: ${progress.value}%`);
-          } else {
-            console.log(`Streak is ${correctStreak.value}, progress stays at: ${progress.value}%`);
-          }
+      // Close modals
+      showHeartLostModal.value = false;
+      showResult.value = false;
+      
+      // Check if we have more steps
+      const currentStep = stepStore.currentStepId.value;
+      const stepsData = window.exerciseStepsManager.getActiveSequenceSteps();
+      const isLastStep = currentStep >= stepsData.length;
+
+      if (isCorrect.value) {
+        correctStreak.value++;
+        console.log(`Correct streak increased to ${correctStreak.value}`);
+        
+        if (isLastStep) {
+          // Show completion modal if this was the last step
+          showCompletionModal.value = true;
+          // Set progress to 100%
+          progress.value = 100;
+          console.log('All exercises completed! Showing completion modal.');
         } else {
-          if (window.activeExerciseComponent && typeof window.activeExerciseComponent.onContinue === 'function') {
-            window.activeExerciseComponent.onContinue();
-          }
+          // Only move to next step, don't update progress here
+          nextExercise();
         }
-
-        resetFooter();
       } else {
-        checkAnswer();
+        // Incorrect answer
+        if (hearts.value > 0) {
+          stepStore.decreaseHearts();
+        }
+        
+        // Reset streak on incorrect answer
+        correctStreak.value = 0;
+        console.log('Streak reset to 0 due to incorrect answer');
+        
+        // Continue to next exercise if not the last one
+        if (!isLastStep) {
+          nextExercise();
+        }
+      }
+      
+      resetFooter();
+    };
+
+    const skipExercise = () => {
+      console.log('Skipping exercise...');
+      
+      // Get correct answer from current exercise
+      if (window.activeExerciseComponent && typeof window.activeExerciseComponent.checkAnswer === 'function') {
+        const result = window.activeExerciseComponent.checkAnswer();
+        
+        // Force the result to be incorrect regardless of actual answer
+        isCorrect.value = false;
+        showResult.value = true;
+        
+        // Check if the current exercise is a matching exercise - don't show answer for matching
+        const currentStepData = window.exerciseStepsManager.getStepById(stepStore.currentStepId.value);
+        const isMatchingExercise = currentStepData && currentStepData.type === 'matching';
+        
+        // Set correct answer only for non-matching exercise types
+        if (!isMatchingExercise && result && result.correctAnswer) {
+          correctAnswer.value = result.correctAnswer;
+          console.log('Setting correct answer for skip:', result.correctAnswer);
+        } else {
+          // Clear correct answer for matching exercises or if no correctAnswer in result
+          correctAnswer.value = '';
+          console.log('Not showing correct answer for this exercise type');
+        }
+        
+        // Reset streak as this counts as incorrect
+        correctStreak.value = 0;
+        console.log('Streak reset to 0 due to skipping exercise');
+        
+        // Decrease hearts if applicable
+        if (hearts.value > 0 && stepStore) {
+          stepStore.decreaseHearts();
+          console.log('Heart decreased due to skipping exercise');
+        }
       }
     };
 
@@ -252,31 +366,98 @@ export default {
       isCorrect.value = false;
       correctAnswer.value = '';
       activeExerciseContent.value = null;
+      showCompletionModal.value = false;
     };
 
     const closeModal = () => {
-      showModal.value = false;
+      showHeartLostModal.value = false;
     };
+    
+    // Restart the exercise when all hearts are lost
+    const restartExercise = () => {
+      console.log('Restarting exercise from beginning...');
+      
+      // Reset hearts
+      if (stepStore && stepStore.resetHearts) {
+        stepStore.resetHearts();
+      }
+      
+      // Reset progress
+      progress.value = 0;
+      
+      // Reset streak
+      correctStreak.value = 0;
+      
+      // Close modal
+      showNoHeartsModal.value = false;
+      showCompletionModal.value = false;
+      
+      // Reset to first exercise
+      if (window.exerciseStepsManager) {
+        // Get the first step
+        const firstStep = window.exerciseStepsManager.getStepById(1);
+        if (firstStep) {
+          // Set step ID to 1
+          stepStore.setStep(1);
+          
+          // Reset UI state before loading new exercise
+          resetFooter();
+          
+          // Reset any active exercise component
+          if (window.activeExerciseComponent) {
+            // If the component has a reset method, call it
+            if (typeof window.activeExerciseComponent.reset === 'function') {
+              window.activeExerciseComponent.reset();
+            }
+            
+            // If the component has an init method, call it to reinitialize
+            if (typeof window.activeExerciseComponent.init === 'function') {
+              window.activeExerciseComponent.init();
+            }
+          }
+          
+          // Force reload the exercise to ensure everything is fresh
+          activeComponent.value = null;
+          setTimeout(() => {
+            loadExerciseDataAndComponent(1);
+            console.log('Exercise completely restarted');
+          }, 50);
+        }
+      }
+    };
+
+    // Watch hearts value and show NoHeartsModal when it reaches 0
+    watch(hearts, (newVal) => {
+      console.log(`Hearts value changed to: ${newVal}`);
+      if (newVal <= 0) {
+        console.log('No hearts left, showing restart modal');
+        showNoHeartsModal.value = true;
+      }
+    });
 
     return {
       activeComponent,
-      canCheck,
+      activeExercise,
+      activeExerciseHasCustomContent,
       showResult,
       isCorrect,
+      canCheck,
       correctAnswer,
-      showModal,
-      hearts,
-      progress,
-      correctStreak,
       footerStateClass,
       buttonText,
-      title,
+      hearts,
+      correctStreak,
+      progress,
       currentExerciseData,
-
+      showHeartLostModal,
+      showNoHeartsModal,
+      showCompletionModal,
       checkAnswer,
       continueAction,
       closeModal,
-      nextExercise
+      nextExercise,
+      skipExercise,
+      restartExercise
     };
   }
 };
@@ -313,15 +494,16 @@ export default {
   grid-template-rows: min-content minmax(0, 1fr);
 }
 
-.exercise {
+.exercise-component {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+  animation: slide-right 0.5s ease-in-out;
 }
 
 @media (max-width: 768px) {
 
-  .exercise {
+  .exercise-component {
     max-width: 100%;
   }
 }
@@ -345,23 +527,15 @@ export default {
   }
 }
 
-
-
-
-
-.exercise {
-  animation: fade-in 0.3s ease-in-out;
-}
-
-@keyframes fade-in {
+@keyframes slide-right {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateX(-50px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 

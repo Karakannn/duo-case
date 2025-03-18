@@ -15,6 +15,9 @@
         <div class="options-list d-flex flex-wrap justify-content-center gap-2 origin">
           <div v-for="(option, index) in options" :key="index" class="word-container">
             <FillWord :text="option" :index="index" :blankElementRef="blankRef" :ref="el => wordRefs[index] = el"
+              :isCorrect="isAnswerChecked && currentWordIndex === index && isCorrect"
+              :isIncorrect="isAnswerChecked && currentWordIndex === index && !isCorrect"
+              :isDisabled="isAnswerChecked"
               @word-selected="handleWordSelection" @animation-start="animationStarted"
               @animation-end="animationEnded" />
           </div>
@@ -47,6 +50,8 @@ export default {
     const selectedWord = ref(null);
     const isAnimating = ref(false);
     const display = ref({});
+    const isAnswerChecked = ref(false);
+    const isCorrect = ref(false);
 
     // Store references to all word components
     const wordRefs = reactive({});
@@ -164,10 +169,16 @@ export default {
       // Global API'yi ayarla
       window.activeExerciseComponent = {
         checkAnswer: () => {
+          isAnswerChecked.value = true;
           const result = exercise.checkAnswer();
+          isCorrect.value = result.isCorrect;
           return result;
         },
-        onContinue: exercise.onContinue,
+        onContinue: () => {
+          isAnswerChecked.value = false;
+          isCorrect.value = false;
+          exercise.onContinue();
+        },
         renderResultContent: exercise.renderResultContent
       };
     });
@@ -180,7 +191,10 @@ export default {
       handleWordSelection,
       animationStarted,
       animationEnded,
-      display
+      display,
+      currentWordIndex,
+      isAnswerChecked,
+      isCorrect
     };
   }
 }
@@ -278,8 +292,6 @@ export default {
   border-radius: 12px;
   padding: 4px;
 }
-
-.word-container:empty {}
 
 .blank-area {
   min-height: 60px;

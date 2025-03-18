@@ -1,20 +1,16 @@
 <template>
   <div class="exercise-container">
-    <div class="exercise-component">
-      <div class="options-grid">
-        <selection-card v-for="(option, index) in options" :key="index" :is-selected="selectedOption === option.name"
-          :is-correct="isAnswerChecked && option.name === correctOptionName" :is-disabled="isAnswerChecked"
-          :class-name="'picture-card'" @select="handleOptionSelect(option)">
-          <div class="card-image-container">
-            <div class="card-image" :style="{ backgroundImage: `url(${option.imageUrl})` }"></div>
-          </div>
-          <div class="card-text-container">
-            <span class="card-text" style="color: var(--color-hare)">{{ option.name }}</span>
-            <span class="card-text-index">{{ index + 1 }}</span>
-          </div>
-        </selection-card>
+    <selection-card v-for="(option, index) in options" :key="index" :is-selected="selectedOption === option.name"
+      :is-correct="isAnswerChecked && option.name === correctOptionName" :is-disabled="isAnswerChecked"
+      :class-name="'picture-card'" @select="handleOptionSelect(option)">
+      <div class="card-image-container">
+        <div class="card-image" :style="{ backgroundImage: `url(${option.imageUrl})` }"></div>
       </div>
-    </div>
+      <div class="card-text-container">
+        <span class="card-text">{{ option.name }}</span>
+        <span class="card-text-index">{{ index + 1 }}</span>
+      </div>
+    </selection-card>
   </div>
 </template>
 
@@ -54,30 +50,37 @@ export default {
     const isAnswerChecked = ref(false);
     const correctOptionName = ref("");
     const selectedOption = ref("");
+    const options = ref([]);
 
     // Prevent selection when answer is checked
     const handleOptionSelect = (option) => {
       if (!isAnswerChecked.value) {
         selectedOption.value = option.name;
+
+        // Enable the "Kontrol Et" button when a card is selected
+        if (window.mainLayout) {
+          window.mainLayout.setCanCheck(true);
+          console.log('Card selected:', option.name, '- Enabling Kontrol Et button');
+        }
       }
     };
 
     // Load exercise data
     const loadExerciseData = () => {
       const { exerciseData } = props;
-      
+
       if (exerciseData && exerciseData.question) {
         const { question } = exerciseData;
-        
-        // Set options
-        pictureMatch.setOptions(question.options || []);
-        
-        // Set correct option
-        pictureMatch.setCorrectOption(question.correctOption || '');
-        
+
+        // Set options directly instead of using setOptions method
+        options.value = question.options || [];
+
+        // Set correct option directly instead of using setCorrectOption method
+        correctOptionName.value = question.correctOption || '';
+
         // Set question image URL
         questionImageUrl.value = question.imageUrl || '';
-        
+
         // Set display data
         if (exerciseData.display) {
           display.value = exerciseData.display;
@@ -88,16 +91,27 @@ export default {
     // Component mounted
     onMounted(() => {
       loadExerciseData();
-      
+
       // Global API'yi ayarla
       window.activeExerciseComponent = {
         checkAnswer: () => {
           isAnswerChecked.value = true;
-          return selectedOption.value === correctOptionName.value;
+          const isCorrect = selectedOption.value === correctOptionName.value;
+
+          // Return structured result that MainLayout expects
+          return {
+            isCorrect: isCorrect,
+            correctAnswer: correctOptionName.value
+          };
         },
         onContinue: () => {
           isAnswerChecked.value = false;
           selectedOption.value = '';
+
+          // Disable the "Kontrol Et" button when resetting
+          if (window.mainLayout) {
+            window.mainLayout.setCanCheck(false);
+          }
         }
       };
     });
@@ -105,7 +119,7 @@ export default {
     return {
       display,
       questionImageUrl,
-      options: pictureMatch.options,
+      options,
       selectedOption,
       handleOptionSelect,
       isAnswerChecked,
@@ -117,19 +131,14 @@ export default {
 
 <style scoped>
 .exercise-container {
-  display: flex;
-  align-content: center;
-  font-size: 19px;
-  justify-content: center;
-  text-align: center;
-  width: 100%;
+  grid-gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.exercise-component {
-  display: grid;
-  grid-template-rows: min-content minmax(0, 1fr);
-  grid-gap: 16px;
-  height: auto;
+.picture-card {
+  height: 100%;
+  color: var(--color-eel);
 }
 
 .category {
@@ -138,12 +147,7 @@ export default {
   font-size: 19px;
 }
 
-.options-grid {
-  display: grid;
-  grid-gap: 8px;
-  align-items: center;
-  grid-template-columns: repeat(2, 1fr);
-}
+
 
 /* Styles needed for the card content */
 .card-image-container {
@@ -152,6 +156,7 @@ export default {
   flex-direction: column;
   justify-content: center;
   width: 100%;
+  flex: 1;
 }
 
 .card-image {
@@ -171,16 +176,17 @@ export default {
   width: 100%;
   align-items: center;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .card-text {
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 500;
+
 }
 
 .card-text-index {
-  display: inline-flex;
+  display: none;
   align-items: center;
   border: 3px solid var(--color-swan);
   border-radius: 8px;
@@ -194,15 +200,30 @@ export default {
 }
 
 @media (min-width: 700px) {
-  .options-grid {
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+
+  .picture-card {
+    height: fit-content;
   }
 
-  .exercise-component {
-    min-height: 450px;
-    overflow: visible;
-    width: 600px;
-    grid-gap: 24px;
+  .card-image-container {
+    flex: none;
+  }
+
+  .exercise-container {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    align-items: center;
+  }
+
+  .card-text {
+    font-size: 19px;
+  }
+
+  .card-text-container {
+    justify-content: space-between;
+  }
+
+  .card-text-index {
+    display: inline-flex;
   }
 }
 </style>
