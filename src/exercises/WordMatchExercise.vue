@@ -1,23 +1,6 @@
 <template>
   <div class="exercise-container">
     <div class="exercise-component">
-      <h1 class="exercise-title">{{ title }}</h1>
-
-      <div class="character-container">
-        <div class="speech-bubble-container">
-          <div class="speech-bubble">
-            <span class="word-text">{{ word }}</span>
-          </div>
-          <svg class="speech-icon" height="20" viewBox="0 0 18 20">
-            <path class="speech-icon-path"
-              d="M2.00358 19.0909H18V0.909058L0.624575 15.9561C-0.682507 17.088 0.198558 19.0909 2.00358 19.0909Z">
-            </path>
-            <path class="speech-icon-path" clip-rule="evenodd"
-              d="M18 2.48935V0L0.83037 15.6255C-0.943477 17.2398 0.312833 20 2.82143 20H18V18.2916H16.1228H2.82143C1.98523 18.2916 1.56646 17.3716 2.15774 16.8335L16.1228 4.12436L18 2.48935Z"
-              fill-rule="evenodd"></path>
-          </svg>
-        </div>
-      </div>
 
       <div class="options-container">
         <div class="options-list">
@@ -65,14 +48,14 @@ export default {
     const loadExerciseData = () => {
       // Get all word-match exercises
       let exercises = [];
-      
+
       if (window.exerciseStepsManager) {
         exercises = window.exerciseStepsManager.getStepsByType('word-match') || [];
       } else if (window.exerciseSteps) {
         // Try to access directly if manager is not available
         exercises = window.exerciseSteps.filter(step => step.type === 'word-match') || [];
       }
-      
+
       // Select current exercise based on step index
       if (exercises && exercises.length > 0) {
         currentExercise.value = exercises[currentStepIndex.value % exercises.length];
@@ -86,13 +69,13 @@ export default {
     const initializeExerciseData = () => {
       if (currentExercise.value && currentExercise.value.question) {
         const questionData = currentExercise.value.question;
-        
+
         // Set title from exercise data or use default
         title.value = questionData.title || "Choose the correct translation";
-        
+
         // Set the word to translate - try different possible field names
         word.value = questionData.word || questionData.text || '';
-        
+
         // Set options - try different possible field names
         if (questionData.options && Array.isArray(questionData.options)) {
           options.value = [...questionData.options];
@@ -102,12 +85,12 @@ export default {
           options.value = [];
           console.error('No options found in exercise data');
         }
-        
+
         // Set correct option - try different possible field names
-        correctOption.value = questionData.correctOption || 
-                              questionData.correctAnswer || 
-                              questionData.answer || 
-                              '';
+        correctOption.value = questionData.correctOption ||
+          questionData.correctAnswer ||
+          questionData.answer ||
+          '';
       } else {
         console.error('Invalid exercise data structure:', currentExercise.value);
       }
@@ -118,7 +101,7 @@ export default {
       // Reset state
       selectedOption.value = "";
       isAnswerChecked.value = false;
-      
+
       // Load exercise data
       loadExerciseData();
     };
@@ -132,7 +115,7 @@ export default {
     // Handle option selection
     const handleOptionSelect = (option) => {
       selectedOption.value = option;
-      
+
       // Enable "Kontrol Et" button when an option is selected
       if (window.mainLayout) {
         if (typeof window.mainLayout.canCheck === 'object' && window.mainLayout.canCheck.value !== undefined) {
@@ -146,9 +129,9 @@ export default {
     // Check answer
     const checkAnswer = () => {
       if (!selectedOption.value) return false;
-      
+
       const isCorrect = selectedOption.value === correctOption.value;
-      
+
       // Update global state
       const store = window.store || {};
       if (isCorrect && store.increaseScore) {
@@ -156,30 +139,30 @@ export default {
       } else if (!isCorrect && store.decreaseHearts) {
         store.decreaseHearts();
       }
-      
+
       // Update UI state
       isAnswerChecked.value = true;
-      
+
       if (window.mainLayout) {
         if (window.mainLayout.showResult) {
           window.mainLayout.showResult.value = true;
         } else {
           window.mainLayout.showResult = ref(true);
         }
-        
+
         if (window.mainLayout.isCorrect) {
           window.mainLayout.isCorrect.value = isCorrect;
         } else {
           window.mainLayout.isCorrect = ref(isCorrect);
         }
-        
+
         if (window.mainLayout.correctAnswer) {
           window.mainLayout.correctAnswer.value = correctOption.value;
         } else {
           window.mainLayout.correctAnswer = ref(correctOption.value);
         }
       }
-      
+
       return {
         isCorrect,
         userAnswer: selectedOption.value,
@@ -191,13 +174,13 @@ export default {
     const onContinue = () => {
       if (isAnswerChecked.value) {
         moveToNextExercise();
-        
+
         // Reset UI state
         if (window.mainLayout) {
           if (window.mainLayout.canCheck) {
             window.mainLayout.canCheck.value = false;
           }
-          
+
           if (window.mainLayout.showResult) {
             window.mainLayout.showResult.value = false;
           }
@@ -215,7 +198,7 @@ export default {
         // Initialize from ExerciseSteps
         loadExerciseData();
       }
-      
+
       // Make sure canCheck is set to false initially
       if (window.mainLayout) {
         if (typeof window.mainLayout.canCheck === 'object' && window.mainLayout.canCheck.value !== undefined) {
@@ -224,7 +207,7 @@ export default {
           window.mainLayout.canCheck = false;
         }
       }
-      
+
       // Set the active exercise component for global use
       window.activeExerciseComponent = {
         checkAnswer,
@@ -265,60 +248,6 @@ export default {
   padding: 20px 0;
 }
 
-.exercise-title {
-  font-size: 32px;
-  line-height: 1.25;
-  margin: 0;
-  text-align: left;
-  width: 100%;
-  color: rgb(241, 247, 251);
-  font-weight: 700;
-}
-
-.character-container {
-  display: flex;
-  justify-content: start;
-  align-items: flex-start;
-  position: relative;
-  margin: 20px 0 30px;
-  width: 100%;
-}
-
-.speech-bubble-container {
-  position: relative;
-}
-
-.speech-bubble {
-  background: var(--color-snow);
-  border: 2px solid var(--color-swan);
-  border-radius: 12px;
-  color: var(--color-eel);
-  font-size: 1.25rem;
-  font-weight: 500;
-  line-height: 2rem;
-  padding: 10px 14px;
-}
-
-.speech-icon {
-  position: absolute;
-  left: -16px;
-  top: 50%;
-  transform: translateY(-50%);
-  top: 32px;
-  color: var(--color-eel);
-}
-
-.speech-icon-path {
-  fill: var(--color-snow);
-  stroke: var(--color-swan);
-}
-
-.word-text {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-eel);
-}
-
 .options-container {
   width: 100%;
   margin-top: 20px;
@@ -331,9 +260,18 @@ export default {
   width: 100%;
 }
 
-.word-match-option {
-  border-radius: 12px;
-  gap: 10px;
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.option-item:hover {
+  background-color: #f0f0f0;
 }
 
 @media (min-width: 700px) {

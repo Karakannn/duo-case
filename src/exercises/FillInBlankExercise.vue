@@ -1,28 +1,20 @@
 <template>
   <div class="exercise-component">
-    <div class="sentence-container mb-4">
-      <div class="sentence-display p-3 bg-light rounded-3 shadow-sm">
+    <div class="sentence-container">
+      <div class="sentence-display">
         <span v-for="(part, index) in sentenceParts" :key="index">
           <span v-if="part.type === 'text'">{{ part.content }}</span>
           <span v-else-if="part.type === 'blank'" :ref="setBlankRef" class="blank-space destination blank-area">
-            <!-- Boş alan burası, tek kelime olacak -->
           </span>
         </span>
       </div>
     </div>
-    
+
     <div class="options-container">
       <div class="options-list d-flex flex-wrap justify-content-center gap-2 origin">
         <div v-for="(option, index) in options" :key="index" class="word-container">
-          <FillWord
-            :text="option"
-            :index="index"
-            :blankElementRef="blankRef"
-            :ref="el => wordRefs[index] = el"
-            @word-selected="handleWordSelection"
-            @animation-start="animationStarted"
-            @animation-end="animationEnded"
-          />
+          <FillWord :text="option" :index="index" :blankElementRef="blankRef" :ref="el => wordRefs[index] = el"
+            @word-selected="handleWordSelection" @animation-start="animationStarted" @animation-end="animationEnded" />
         </div>
       </div>
     </div>
@@ -43,46 +35,42 @@ export default {
   },
   setup(props) {
     const { onMounted, ref, reactive, computed } = Vue;
-    
+
     // Boşluk doldurma egzersiz composable'ını kullan
     const exercise = window.useFillInBlank(props);
-    
+
     // Blank element reference
     const blankRef = ref(null);
     const selectedWord = ref(null);
     const isAnimating = ref(false);
-    
+    const display = ref({});
+
     // Store references to all word components
     const wordRefs = reactive({});
     const currentWordIndex = ref(null);
-    
+
     // Function to set the blank space ref
     const setBlankRef = (el) => {
       if (el) {
         blankRef.value = el;
       }
     };
-    
-    // Force a small delay between animations
-    const waitForReset = () => {
-      return new Promise(resolve => setTimeout(resolve, 100));
-    };
-    
+
     // Handle any word selection
     const handleWordSelection = async (data) => {
       if (isAnimating.value) return;
-      
+
       // Kullanıcı zaten hedefte olan (blank alanda) bir kelimeye tıkladı
       if (data.location === 'destination') {
         console.log('Destination word clicked', data.index);
         if (currentWordIndex.value === data.index) {
           // Kelimeyi geri dön
           wordRefs[data.index].moveToOrigin();
-          
+
           // Seçimi temizle
           selectedWord.value = null;
           currentWordIndex.value = null;
-          
+
           // Egzersizi güncelle
           exercise.selectOption(null);
         }
@@ -90,63 +78,78 @@ export default {
       // Kullanıcı orijinal konumundaki bir kelimeye tıkladı
       else if (data.location === 'origin') {
         console.log('Origin word clicked', data.index);
-        
+
         // Eğer blank alanda zaten bir kelime varsa
         if (currentWordIndex.value !== null) {
           // Sadece farklı bir kelime ise devam et
           if (currentWordIndex.value !== data.index) {
             console.log('Resetting current word', currentWordIndex.value);
-            
+
             // Animasyonları eş zamanlı başlat (önce önceki kelimenin geri dönmesini beklemeden)
             // Mevcut kelimeyi orijinal konumuna gönder
             wordRefs[currentWordIndex.value].moveToOrigin();
-            
+
             // Hemen yeni kelimeyi ayarla (beklemeden)
             selectedWord.value = data.text;
             currentWordIndex.value = data.index;
-            
+
             // Yeni kelimeyi blank alana taşı (eş zamanlı)
             wordRefs[data.index].moveToDestination();
-            
+
             // Egzersizi güncelle
             exercise.selectOption(data.text);
           }
         } else {
           console.log('Setting first word', data.index);
-          
+
           // Blank alanda kelime yoksa, bu kelimeyi ayarla
           selectedWord.value = data.text;
           currentWordIndex.value = data.index;
-          
+
           // Kelimeyi blank alana taşı
           wordRefs[data.index].moveToDestination();
-          
+
           // Egzersizi güncelle
           exercise.selectOption(data.text);
         }
       }
     };
-    
+
     const selectOption = (data) => {
       // Bu artık handleWordSelection için bir proxy
       handleWordSelection(data);
     };
-    
+
     const animationStarted = () => {
       console.log('Animation started');
       isAnimating.value = true;
     };
-    
+
     const animationEnded = (data) => {
       console.log('Animation ended', data.location);
       isAnimating.value = false;
     };
-    
-    // Bileşen yüklendiğinde
+
+    // Load exercise data
+    const loadExerciseData = () => {
+      // Egzersiz verilerini al
+      const { exerciseData } = props;
+      if (exerciseData && exerciseData.question) {
+        const { question } = exerciseData;
+
+        // Display verilerini ayarla
+        display.value = exerciseData.display || {};
+      }
+    };
+
+    // Component mounted
     onMounted(() => {
+      loadExerciseData();
+
       // Başlangıç kurulumu 
+      console.log('FillInBlankExercise - onMounted - Starting initialization');
       exercise.init();
-      
+
       // Blank alanını temizle
       if (blankRef.value) {
         // Blank alanındaki tüm çocuk elementleri temizle
@@ -154,31 +157,27 @@ export default {
           blankRef.value.removeChild(blankRef.value.firstChild);
         }
       }
-      
+
       // Global API'yi ayarla
       window.activeExerciseComponent = {
-        checkAnswer: exercise.checkAnswer,
+        checkAnswer: () => {
+          const result = exercise.checkAnswer();
+          return result;
+        },
         onContinue: exercise.onContinue,
         renderResultContent: exercise.renderResultContent
       };
     });
-    
+
     return {
-      // State
-      sentenceParts: exercise.sentenceParts,
-      options: exercise.options,
-      selectedWord,
+      ...exercise,
       blankRef,
       wordRefs,
-      isAnimating,
-      currentWordIndex,
-      
-      // Methods
       setBlankRef,
-      selectOption,
       handleWordSelection,
       animationStarted,
-      animationEnded
+      animationEnded,
+      display
     };
   }
 }
@@ -190,11 +189,27 @@ export default {
 }
 
 .sentence-display {
-  color: #333;
-  font-size: 1.3rem;
-  line-height: 1.5;
-  margin: 0 auto;
-  max-width: 600px;
+  display: flex;
+  color: white;
+}
+
+.category {
+  color: var(--color-beetle);
+  font-weight: 700;
+  font-size: 19px;
+}
+
+.title-container {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 8px;
+}
+
+.title-container h5 {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-hare);
 }
 
 .blank-space {
@@ -207,15 +222,7 @@ export default {
   color: #58cc02;
   text-align: center;
   vertical-align: bottom;
-  background: linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 30px,
-    #f5f5f5 30px,
-    #f5f5f5 32px,
-    transparent 32px,
-    transparent 36px
-  );
+  padding-bottom: 2px;
 }
 
 .options-container {
@@ -249,20 +256,16 @@ export default {
   min-width: 50px;
   z-index: 1;
   position: relative;
-  background-color: rgba(245, 245, 245, 0.7);
+  background: rgba(240, 240, 240, 0.5);
   border-radius: 12px;
   padding: 4px;
 }
 
-.word-container:empty {
-  background: rgba(240, 240, 240, 0.5);
-  border-radius: 12px;
-  z-index: 1;
-}
+.word-container:empty {}
 
 .blank-area {
-  min-height: 50px;
-  min-width: 220px;
+  min-height: 60px;
+  min-width: 120px;
   border-bottom: 2px solid #ccc;
   display: flex;
   justify-content: center;
@@ -270,6 +273,6 @@ export default {
   margin: 0 20px;
   z-index: 5;
   position: relative;
-  background-color: rgba(250, 250, 250, 0.5);
+  padding-bottom: 2px;
 }
 </style>

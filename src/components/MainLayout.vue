@@ -1,18 +1,23 @@
 <template>
   <div class="layout">
-    <!-- Header -->
     <Header :progress="progress" :hearts="hearts" :correctStreak="correctStreak" />
 
-    <!-- Main Content Area -->
     <div class="layout-content">
+      <exercise-title
+        v-if="currentExerciseData && currentExerciseData.display && currentExerciseData.display.type === 'title'"
+        :title="currentExerciseData.display.title" :category="currentExerciseData.display.category"
+        :imageUrl="currentExerciseData.display.imageUrl" class="exercise-header" />
+
+      <character-speech
+        v-if="currentExerciseData && currentExerciseData.display && currentExerciseData.display.type === 'character'"
+        :text="currentExerciseData.display.text" class="exercise-header" />
+
       <component :is="activeComponent" class="exercise" :exercise-data="currentExerciseData" />
     </div>
 
-    <!-- Footer -->
     <Footer :showResult="showResult" :isCorrect="isCorrect" :canCheck="canCheck" :correctAnswer="correctAnswer"
       :correctStreak="correctStreak" />
 
-    <!-- Yanlış Cevap Modalı - Şimdilik bu modalı kullanıyoruz -->
     <HeartLostModal v-if="showModal && !isCorrect" :show="showModal" :remainingHearts="hearts" @continue="closeModal" />
   </div>
 </template>
@@ -24,7 +29,9 @@ export default {
   components: {
     Header: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Header.vue", window.sfcOptions)),
     Footer: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Footer.vue", window.sfcOptions)),
-    HeartLostModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/HeartLostModal.vue", window.sfcOptions))
+    HeartLostModal: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/HeartLostModal.vue", window.sfcOptions)),
+    ExerciseTitle: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/ExerciseTitle.vue", window.sfcOptions)),
+    CharacterSpeech: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/CharacterSpeech.vue", window.sfcOptions))
   },
   setup() {
     // State
@@ -276,15 +283,43 @@ export default {
 .layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
+  background-color: var(--color-snow);
 }
 
 .layout-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  flex: 1;
+  justify-content: flex-start;
+  padding: 20px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.exercise-header {
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.exercise {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .layout-content {
+    padding: 10px;
+  }
+
+  .exercise {
+    max-width: 100%;
+  }
 }
 
 .exercise {

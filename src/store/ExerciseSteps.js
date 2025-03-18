@@ -9,6 +9,12 @@
       type: 'fill-in-blank',
       id: 1,
       stepProgress: 40, // İlerleme yüzdesi
+      display: {
+        type: 'title',
+        title: "Cümledeki boşluğu doldurun",
+        category: "YENİ KELİME",
+        imageUrl: "" // Opsiyonel
+      },
       question: {
         sentence: 'I ___ to school every day.',
         options: ['go', 'went', 'going', 'gone'],
@@ -16,12 +22,15 @@
       }
     },
 
-
-
     {
       type: 'word-match',
-      id: 2, // ID'yi 3'e değiştirdim
-      stepProgress: 20, // İlerleme yüzdesini güncelledim
+      id: 2,
+      stepProgress: 20,
+      display: {
+        type: 'character',
+        text: "Goodbye",
+        characterImage: "" // Opsiyonel karakter görseli
+      },
       question: {
         word: 'Goodbye',
         options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
@@ -30,12 +39,17 @@
     },
     {
       type: 'word-builder',
-      id: 3, // ID'yi 1 olarak değiştirdim, böylece ilk sırada başlar
-      stepProgress: 0, // İlerleme yüzdesini sıfırdan başlattım
+      id: 3,
+      stepProgress: 0,
+      display: {
+        type: 'character',
+        text: "Book",
+        characterImage: "" // Opsiyonel karakter görseli
+      },
       question: {
         text: 'Yeni bir kitap aldım',
         meaning: 'I bought a new book',
-        word: 'Book', // Added word property for speech bubble
+        word: 'Book',
         parts: ['Yeni', 'bir', 'kitap', 'aldım'],
         correctSequence: [0, 1, 2, 3]
       }
@@ -43,8 +57,14 @@
     // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',
-      id: 4, // ID'yi 2'ye değiştirdim
-      stepProgress: 30, // İlerleme yüzdesini güncelledim
+      id: 4,
+      stepProgress: 30,
+      display: {
+        type: 'title',
+        title: "Görsele uygun kelimeyi seçin",
+        category: "YENİ KELİME",
+        imageUrl: '/images/question/dog.jpg' // Opsiyonel
+      },
       question: {
         imageUrl: '/images/question/dog.jpg',
         options: [
@@ -59,7 +79,13 @@
     {
       type: 'matching',
       id: 5,
-      stepProgress: 0, // İlerleme yüzdesi
+      stepProgress: 0,
+      display: {
+        type: 'title',
+        title: "Eşleştirmeleri tamamlayın",
+        category: "YENİ KELİME",
+        imageUrl: "" // Opsiyonel
+      },
       question: {
         leftItems: [
           { id: 1, text: "elma" },
@@ -89,7 +115,13 @@
     {
       type: 'picture-match',
       id: 6,
-      stepProgress: 100, // İlerleme yüzdesi - %100 ile tamamlanır
+      stepProgress: 100,
+      display: {
+        type: 'title',
+        title: "Görsele uygun kelimeyi seçin",
+        category: "YENİ KELİME",
+        imageUrl: '/images/question/dog.jpg' // Opsiyonel
+      },
       question: {
         imageUrl: '/images/question/dog.jpg',
         options: [

@@ -339,7 +339,6 @@ export default {
 <style scoped>
 .word {
   position: relative;
-
   cursor: pointer;
   white-space: nowrap;
   font-size: 19px;
