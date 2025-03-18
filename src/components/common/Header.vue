@@ -1,5 +1,5 @@
 <template>
-  <div class="exercise-header w-100">
+  <div class="exercise-header">
     <div class="exercise-header-inner">
       <div class="back-button">
         <img src="https://d35aaqx5ub95lt.cloudfront.net/images/df223d5b9feb8017b323ed21103eb5ac.svg" alt="Back"
@@ -76,17 +76,17 @@ export default {
 
 <style scoped>
 .exercise-header {
-  padding: 50px 40px 0;
   margin: 0 auto;
   max-width: 1080px;
+  width: 100%;
 }
 
 .exercise-header-inner {
   width: 100%;
-  display: flex;
-  gap: 24px;
+  display: grid;
+  grid-gap: 20px;
+  grid-template-columns: min-content 1fr min-content;
   align-items: center;
-  justify-content: space-between;
 }
 
 .progress-container {

@@ -45,11 +45,11 @@
                 </div>
             </div>
 
-            <Button v-if="!showResult" :id="showResult ? 'continueButton' : 'checkAnswerButton'" :variant="'secondary'">
+            <Button class="skip-button" v-if="!showResult" :id="showResult ? 'continueButton' : 'checkAnswerButton'" :variant="'secondary'">
                 GEC
             </Button>
 
-            <Button :id="showResult ? 'continueButton' : 'checkAnswerButton'"
+            <Button :class="'check-button'" :id="showResult ? 'continueButton' : 'checkAnswerButton'"
                 :variant="showResult && !isCorrect ? 'danger' : 'default'"
                 @click="showResult ? handleContinue() : handleCheck()" :disabled="!showResult && !canCheck">
                 {{ showResult ? 'DEVAM ET' : 'KONTROL ET' }}
@@ -109,8 +109,6 @@ export default {
 
 <style scoped>
 .footer {
-    height: 100%;
-    max-height: 140px;
     background-color: var(--color-snow);
     border-top: 2px solid var(--color-swan);
 }
@@ -264,6 +262,14 @@ export default {
     .footer-inner {
         min-height: 140px;
         padding: 0 40px;
+        width: 100%;
+    }
+}
+@media (max-width: 700px) {
+    .skip-button {
+        display: none;
+    }
+    .check-button {
         width: 100%;
     }
 }

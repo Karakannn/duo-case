@@ -6,8 +6,25 @@
 
     // FillInBlank Egzersizi Örneği
     {
-      type: 'fill-in-blank',
+      type: 'word-match',
       id: 1,
+      stepProgress: 20,
+      display: {
+        type: 'character',
+        title:"Doğru anlamı seçin",
+        category: "YENİ KELİME",
+        text: "Good bye",
+        characterImage: "https://design.duolingo.com/b9352459555a7ded7c55.svg" // Opsiyonel karakter görseli
+      },
+      question: {
+        word: 'Goodbye',
+        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
+        correctOption: 'Güle güle'
+      }
+    },
+    {
+      type: 'fill-in-blank',
+      id: 2,
       stepProgress: 40, // İlerleme yüzdesi
       display: {
         type: 'title',
@@ -22,21 +39,7 @@
       }
     },
 
-    {
-      type: 'word-match',
-      id: 2,
-      stepProgress: 20,
-      display: {
-        type: 'character',
-        text: "Goodbye",
-        characterImage: "" // Opsiyonel karakter görseli
-      },
-      question: {
-        word: 'Goodbye',
-        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
-        correctOption: 'Güle güle'
-      }
-    },
+
     {
       type: 'word-builder',
       id: 3,

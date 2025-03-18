@@ -1,6 +1,6 @@
 <template>
   <div class="title-container">
-    <div class="category">
+    <div v-if="category" class="category">
       <span>
         <svg height="32" preserveAspectRatio="xMidYMin slice" width="32"
           style="color: rgb(var(--color-beetle)); overflow: visible;" viewBox="0 0 33 32">
@@ -44,23 +44,28 @@ export default {
   flex-direction: column;
   align-items: start;
   gap: 8px;
-  margin-bottom: 16px;
+  width: 100%;
 }
 
 .category {
   color: var(--color-beetle);
-  font-weight: 700;
-  font-size: 19px;
+  font-weight: 900;
+  font-size: 16px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .title-container h5 {
-  font-size: 32px;
-  font-weight: 700;
   color: var(--color-hare);
+  text-align: left;
+  font-size: 25px;
+  line-height: 1.25;
   margin: 0;
+  text-align: left;
+  width: 100%;
+  font-weight: 700;
+
 }
 
 .question-image-container {

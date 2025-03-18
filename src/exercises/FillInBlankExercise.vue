@@ -1,20 +1,23 @@
 <template>
-  <div class="exercise-component">
-    <div class="sentence-container">
-      <div class="sentence-display">
-        <span v-for="(part, index) in sentenceParts" :key="index">
-          <span v-if="part.type === 'text'">{{ part.content }}</span>
-          <span v-else-if="part.type === 'blank'" :ref="setBlankRef" class="blank-space destination blank-area">
+  <div class="exercise-container">
+    <div class="exercise-component">
+      <div class="sentence-container">
+        <div class="sentence-display">
+          <span v-for="(part, index) in sentenceParts" :key="index">
+            <span v-if="part.type === 'text'">{{ part.content }}</span>
+            <span v-else-if="part.type === 'blank'" :ref="setBlankRef" class="blank-space destination blank-area">
+            </span>
           </span>
-        </span>
+        </div>
       </div>
-    </div>
 
-    <div class="options-container">
-      <div class="options-list d-flex flex-wrap justify-content-center gap-2 origin">
-        <div v-for="(option, index) in options" :key="index" class="word-container">
-          <FillWord :text="option" :index="index" :blankElementRef="blankRef" :ref="el => wordRefs[index] = el"
-            @word-selected="handleWordSelection" @animation-start="animationStarted" @animation-end="animationEnded" />
+      <div class="options-container">
+        <div class="options-list d-flex flex-wrap justify-content-center gap-2 origin">
+          <div v-for="(option, index) in options" :key="index" class="word-container">
+            <FillWord :text="option" :index="index" :blankElementRef="blankRef" :ref="el => wordRefs[index] = el"
+              @word-selected="handleWordSelection" @animation-start="animationStarted"
+              @animation-end="animationEnded" />
+          </div>
         </div>
       </div>
     </div>
@@ -184,12 +187,27 @@ export default {
 </script>
 
 <style scoped>
+.exercise-container {
+  display: grid;
+  align-content: start;
+  grid-template-rows: min-content min-content;
+}
+
+.exercise-component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
 .sentence-container {
   margin-bottom: 2rem;
 }
 
 .sentence-display {
   display: flex;
+  font-size: 24px;
   color: white;
 }
 
@@ -274,5 +292,11 @@ export default {
   z-index: 5;
   position: relative;
   padding-bottom: 2px;
+}
+
+@media (min-width: 700px) {
+  .exercise-container {
+    align-items: center;
+  }
 }
 </style>

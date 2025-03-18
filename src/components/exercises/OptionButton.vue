@@ -102,4 +102,11 @@ export default {
 .option-text.correct {
   color: var(--internal-color-success) !important;
 }
+
+/* option-number mobile olduğunda hidden olmalı */
+@media (max-width: 700px) {
+  .option-number {
+    display: none;
+  }
+}
 </style>

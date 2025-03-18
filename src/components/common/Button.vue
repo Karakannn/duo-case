@@ -48,6 +48,7 @@ defineEmits(['click']);
 <style scoped>
 .button-container {
   position: relative;
+  width: max-content;
 }
 
 .custom-button {
@@ -62,6 +63,8 @@ defineEmits(['click']);
   font-size: 15px;
   line-height: 1.2;
   position: relative;
+  width: 100%;
+
 }
 
 .button-content {

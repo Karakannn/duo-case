@@ -229,15 +229,6 @@ export default {
 </script>
 
 <style scoped>
-.exercise-container {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  font-size: 19px;
-  justify-content: center;
-  text-align: center;
-  width: 100%;
-}
 
 .exercise-component {
   display: flex;
@@ -245,12 +236,10 @@ export default {
   align-items: start;
   width: 100%;
   max-width: 600px;
-  padding: 20px 0;
 }
 
 .options-container {
   width: 100%;
-  margin-top: 20px;
 }
 
 .options-list {

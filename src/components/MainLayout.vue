@@ -3,16 +3,19 @@
     <Header :progress="progress" :hearts="hearts" :correctStreak="correctStreak" />
 
     <div class="layout-content">
-      <exercise-title
-        v-if="currentExerciseData && currentExerciseData.display && currentExerciseData.display.type === 'title'"
-        :title="currentExerciseData.display.title" :category="currentExerciseData.display.category"
-        :imageUrl="currentExerciseData.display.imageUrl" class="exercise-header" />
+      <div class="layout-content-inner">
+        <exercise-title
+          v-if="currentExerciseData && currentExerciseData.display && currentExerciseData.display.type === 'title'"
+          :title="currentExerciseData.display.title" :category="currentExerciseData.display.category"
+          :imageUrl="currentExerciseData.display.imageUrl" />
 
-      <character-speech
-        v-if="currentExerciseData && currentExerciseData.display && currentExerciseData.display.type === 'character'"
-        :text="currentExerciseData.display.text" class="exercise-header" />
+        <character-speech
+          v-if="currentExerciseData && currentExerciseData.display && currentExerciseData.display.type === 'character'"
+          :text="currentExerciseData.display.text" :character-image="currentExerciseData.display.characterImage"
+          :title="currentExerciseData.display.title" />
 
-      <component :is="activeComponent" class="exercise" :exercise-data="currentExerciseData" />
+        <component :is="activeComponent" class="exercise" :exercise-data="currentExerciseData" />
+      </div>
     </div>
 
     <Footer :showResult="showResult" :isCorrect="isCorrect" :canCheck="canCheck" :correctAnswer="correctAnswer"
@@ -281,28 +284,33 @@ export default {
 
 <style>
 .layout {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: min-content minmax(0, 1fr);
+  overflow-x: hidden;
+  overflow-y: auto;
+  grid-gap: 16px;
   height: 100vh;
   width: 100%;
   background-color: var(--color-snow);
+  padding: 24px 16px;
 }
 
 .layout-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 20px;
-  overflow-y: auto;
-  position: relative;
+  align-content: center;
+  display: grid;
+  font-size: 19px;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
 }
 
-.exercise-header {
-  margin-bottom: 20px;
-  width: 100%;
-  max-width: 600px;
+.layout-content-inner {
+  display: grid;
+  grid-gap: 24px;
+  grid-template-rows: min-content minmax(0, 1fr);
 }
 
 .exercise {
@@ -311,16 +319,31 @@ export default {
   margin: 0 auto;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
-  .layout-content {
-    padding: 10px;
-  }
 
   .exercise {
     max-width: 100%;
   }
 }
+
+@media (min-width: 700px) {
+
+  .layout-content {
+    grid-template-columns: min-content;
+    grid-template-rows: min-content;
+  }
+
+  .layout-content-inner {
+    min-height: 450px;
+    overflow: visible;
+    width: 600px;
+    grid-gap: 24px;
+  }
+}
+
+
+
+
 
 .exercise {
   animation: fade-in 0.3s ease-in-out;
