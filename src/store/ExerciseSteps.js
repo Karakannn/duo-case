@@ -4,34 +4,19 @@
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
 
+    // FillInBlank Egzersizi Örneği
     {
-      type: 'matching',
+      type: 'fill-in-blank',
       id: 1,
-      stepProgress: 0, // İlerleme yüzdesi
+      stepProgress: 40, // İlerleme yüzdesi
       question: {
-        leftItems: [
-          { id: 1, text: "elma" },
-          { id: 2, text: "araba" },
-          { id: 3, text: "ev" },
-          { id: 4, text: "kitap" },
-          { id: 5, text: "bilgisayar" }
-        ],
-        rightItems: [
-          { id: 1, text: "apple" },
-          { id: 2, text: "car" },
-          { id: 3, text: "house" },
-          { id: 4, text: "book" },
-          { id: 5, text: "computer" }
-        ],
-        correctMatches: [
-          { leftId: 1, rightId: 1 },
-          { leftId: 2, rightId: 2 },
-          { leftId: 3, rightId: 3 },
-          { leftId: 4, rightId: 4 },
-          { leftId: 5, rightId: 5 }
-        ]
+        sentence: 'I ___ to school every day.',
+        options: ['go', 'went', 'going', 'gone'],
+        correctAnswer: 'go'
       }
     },
+
+
 
     {
       type: 'word-match',
@@ -71,15 +56,32 @@
       }
     },
 
-    // FillInBlank Egzersizi Örneği
     {
-      type: 'fill-in-blank',
+      type: 'matching',
       id: 5,
-      stepProgress: 40, // İlerleme yüzdesi
+      stepProgress: 0, // İlerleme yüzdesi
       question: {
-        sentence: 'I ___ to school every day.',
-        options: ['go', 'went', 'going', 'gone'],
-        correctAnswer: 'go'
+        leftItems: [
+          { id: 1, text: "elma" },
+          { id: 2, text: "araba" },
+          { id: 3, text: "ev" },
+          { id: 4, text: "kitap" },
+          { id: 5, text: "bilgisayar" }
+        ],
+        rightItems: [
+          { id: 1, text: "apple" },
+          { id: 2, text: "car" },
+          { id: 3, text: "house" },
+          { id: 4, text: "book" },
+          { id: 5, text: "computer" }
+        ],
+        correctMatches: [
+          { leftId: 1, rightId: 1 },
+          { leftId: 2, rightId: 2 },
+          { leftId: 3, rightId: 3 },
+          { leftId: 4, rightId: 4 },
+          { leftId: 5, rightId: 5 }
+        ]
       }
     },
 
