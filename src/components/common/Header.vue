@@ -45,15 +45,15 @@ export default {
   },
   setup(props) {
     const { ref, watchEffect } = Vue;
-    
+
     // Hearts değerini tutacak lokal değişken
     const localHearts = ref(props.hearts);
-    
+
     // Props'tan ve globalStore'dan hearts değerini izle
     watchEffect(() => {
       // Props'tan gelen hearts değerini kullan
       localHearts.value = props.hearts;
-      
+
       // Eğer globalStore varsa ve hearts değeri farklıysa, globalStore'dan al
       if (window.globalStore && typeof window.globalStore.hearts !== 'undefined') {
         if (localHearts.value !== window.globalStore.hearts) {
@@ -61,12 +61,12 @@ export default {
         }
       }
     });
-    
+
     // Hearts değerini güncellemek için global fonksiyon
     window.updateHeaderHearts = (value) => {
       localHearts.value = value;
     };
-    
+
     return {
       localHearts
     };
@@ -150,5 +150,11 @@ export default {
 .cancel-icon {
   height: 18px;
   width: 18px;
+}
+
+@media (min-width: 700px) {
+  .exercise-header {
+    padding: 50px 40px 0;
+  }
 }
 </style>

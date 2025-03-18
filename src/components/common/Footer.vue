@@ -25,9 +25,10 @@
                         </div>
                     </div>
 
-                    <div v-if="!isCorrect" class="incorrect">
-                        <div class="incorrect-container">
-                            <img src="https://d35aaqx5ub95lt.cloudfront.net/images/bd13fa941b2407b4914296afe4435646.svg"
+                    <div class="incorrect-container" v-if="!isCorrect">
+                        <div class="incorrect-icon-container">
+                            <img class="incorrect-icon"
+                                src="https://d35aaqx5ub95lt.cloudfront.net/images/bd13fa941b2407b4914296afe4435646.svg"
                                 alt="">
                         </div>
 
@@ -53,7 +54,7 @@
                 GEC
             </Button>
 
-            <Button :class="'check-button'" :id="showResult ? 'continueButton' : 'checkAnswerButton'"
+            <Button :class="'footer-check-button'" :id="showResult ? 'continueButton' : 'checkAnswerButton'"
                 :variant="showResult && !isCorrect ? 'danger' : 'default'"
                 @click="showResult ? handleContinue() : handleCheck()" :disabled="!showResult && !canCheck">
                 {{ showResult ? 'DEVAM ET' : 'KONTROL ET' }}
@@ -112,10 +113,6 @@ export default {
 </script>
 
 <style scoped>
-.footer {
-    background-color: var(--color-snow);
-    border-top: 2px solid var(--color-swan);
-}
 
 .footer-inner {
     position: relative;
@@ -154,11 +151,11 @@ export default {
     0% {
         transform: scale(0.8);
     }
-    
+
     60% {
         transform: scale(1.1);
     }
-    
+
     100% {
         transform: scale(1);
     }
@@ -233,6 +230,10 @@ export default {
     font-size: 14px;
 }
 
+.footer-check-button {
+    width: 100%;
+}
+
 .correct-text h5 {
     line-height: 30px;
     color: var(--color-tree-frog);
@@ -250,16 +251,28 @@ export default {
 
 
 
-.incorrect {
-    display: flex;
-    gap: 16px;
-    align-items: center;
+.incorrect-container {
+    grid-gap: 16px;
+    display: grid;
+    grid-auto-flow: column;
+}
+
+.incorrect-icon-container {
+    display: none;
+}
+
+.incorrect-icon {
+    height: 31px !important;
+    width: 41px !important;
 }
 
 .incorrect-text {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    grid-gap: 16px;
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: space-between;
+    padding: 0;
+    width: 100%;
 }
 
 .answer {
@@ -301,20 +314,9 @@ export default {
     width: 20px;
 }
 
-.incorrect-container {
-    background: var(--color-snow);
-    border-radius: 98px;
-    display: block;
-    float: left;
-    height: 80px;
-    width: 80px;
-}
-
-.incorrect-container img {
-    display: block;
-    margin: 27px 0 0 20px;
-    height: 31px;
-    width: 41px;
+.incorrect-icon {
+    height: 31px !important;
+    width: 41px !important;
 }
 
 .report-text {
@@ -325,14 +327,19 @@ export default {
     .skip-button {
         display: none;
     }
-    
+
     .footer-status {
         animation: slideUpDebounce 0.2s ease-out forwards;
-        animation-timing-function: cubic-bezier(.35,1.8,.35,.83);
+        animation-timing-function: cubic-bezier(.35, 1.8, .35, .83);
     }
 }
 
 @media (min-width: 700px) {
+
+    .footer {
+        background-color: var(--color-snow);
+        border-top: 2px solid var(--color-swan);
+    }
 
     .footer-inner {
         align-items: center;
@@ -368,6 +375,27 @@ export default {
         grid-auto-flow: row;
     }
 
+    .incorrect-text {
+        align-items: center;
+        grid-auto-flow: row;
+    }
+
+    .incorrect-container {
+        grid-template-columns: min-content 1fr;
+    }
+
+    .incorrect-icon-container {
+        background: var(--color-snow);
+        border-radius: 98px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        float: left;
+        height: 80px;
+        width: 80px;
+        animation: iconBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
     .footer-status {
         display: flex;
         flex-direction: column;
@@ -384,13 +412,14 @@ export default {
     .report-text {
         display: block;
     }
+
+    .footer-check-button {
+        width: max-content;
+    }
+
 }
 
-@media (max-width: 1024) {
-    .check-button {
-        width: 100%;
-    }
-}
+@media (max-width: 700) {}
 
 .correct-state {
     background-color: var(--color-sea-sponge);

@@ -4,24 +4,26 @@
   // Her adım farklı tipteki egzersizlerin soru ve cevaplarını içerir
   const exerciseSteps = [
 
-    // FillInBlank Egzersizi Örneği
+    
     {
-      type: 'word-match',
+      type: 'word-builder',
       id: 1,
-      stepProgress: 20,
+      stepProgress: 0,
       display: {
         type: 'character',
-        title:"Doğru anlamı seçin",
-        category: "YENİ KELİME",
-        text: "Good bye",
-        characterImage: "https://design.duolingo.com/b9352459555a7ded7c55.svg" // Opsiyonel karakter görseli
+        text: "I bought a new book",
+        title: "Build this sentence",
+        characterImage: "https://kasratabrizi.github.io/duolingo-exercise-project/assets/duo.svg" // Opsiyonel karakter görseli
       },
       question: {
-        word: 'Goodbye',
-        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
-        correctOption: 'Güle güle'
+        text: 'Yeni bir kitap aldım',
+        meaning: 'I bought a new book',
+        word: 'Book',
+        parts: ['Yeni', 'bir', 'kitap', 'aldım'],
+        correctSequence: [0, 1, 2, 3]
       }
     },
+
     {
       type: 'fill-in-blank',
       id: 2,
@@ -39,24 +41,24 @@
       }
     },
 
-
     {
-      type: 'word-builder',
+      type: 'word-match',
       id: 3,
-      stepProgress: 0,
+      stepProgress: 20,
       display: {
         type: 'character',
-        text: "Book",
-        characterImage: "" // Opsiyonel karakter görseli
+        title:"Doğru anlamı seçin",
+        category: "YENİ KELİME",
+        text: "Good bye",
+        characterImage: "https://design.duolingo.com/b9352459555a7ded7c55.svg" // Opsiyonel karakter görseli
       },
       question: {
-        text: 'Yeni bir kitap aldım',
-        meaning: 'I bought a new book',
-        word: 'Book',
-        parts: ['Yeni', 'bir', 'kitap', 'aldım'],
-        correctSequence: [0, 1, 2, 3]
+        word: 'Goodbye',
+        options: ['Merhaba', 'Güle güle', 'Teşekkürler', 'Nasılsın'],
+        correctOption: 'Güle güle'
       }
     },
+   
     // PictureMatch Egzersizi Örneği
     {
       type: 'picture-match',

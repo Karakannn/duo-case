@@ -67,7 +67,7 @@ export default {
 .character-container-inner {
   display: flex;
   justify-content: start;
-  align-items: flex-start;
+  align-items: center;
   position: relative;
   padding-left: 16px;
   gap: 16px;
@@ -116,7 +116,27 @@ export default {
 
 .word-text {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-eel);
+}
+
+@media (min-width: 700px) {
+
+  .character-img {
+    width: 120px;
+    height: 120px;
+  }
+
+  .character-title {
+    font-size: 32px;
+  }
+
+  .character-container {
+    gap: 24px;
+  }
+
+  .character-container-inner {
+    gap: 24px;
+  }
 }
 </style>

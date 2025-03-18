@@ -1,9 +1,9 @@
 <template>
   <div class="exercise-component">
     <div class="wrapper">
-      <h1 class="exercise-title">{{ title }}</h1>
+    <!--   <h1 class="exercise-title">{{ title }}</h1> -->
 
-      <div class="top-container">
+  <!--     <div class="top-container">
         <div class="character-container">
           <img src="https://kasratabrizi.github.io/duolingo-exercise-project/assets/duo.svg" class="character-image"
             alt="" srcset="">
@@ -18,7 +18,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <div class="bottom-container">
         <div ref="destinationContainer" class="destination-container">
@@ -278,7 +278,6 @@ export default {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  margin-bottom: 5em;
 }
 
 .exercise-title {
@@ -309,10 +308,6 @@ export default {
   width: 100%;
 }
 
-.character-image {
-  width: 150px;
-  object-fit: cover;
-}
 
 .speech-bubble-container {
   position: relative;
