@@ -328,6 +328,10 @@ export default {
 
 @media (min-width: 700px) {
 
+  .layout {
+    padding: 0;
+  }
+  
   .layout-content {
     grid-template-columns: min-content;
     grid-template-rows: min-content;
