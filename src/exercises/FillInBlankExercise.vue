@@ -1,23 +1,22 @@
 <template>
   <div class="exercise-container">
-    <div class="exercise-component">
-      <div class="sentence-container">
-        <div class="sentence-display">
+    <div class="exercise-component d-flex flex-column align-items-center justify-content-center gap-3">
+      <div class="sentence-container mb-4">
+        <div class="sentence-display d-flex fs-4 text-white">
           <span v-for="(part, index) in sentenceParts" :key="index">
             <span v-if="part.type === 'text'">{{ part.content }}</span>
-            <span v-else-if="part.type === 'blank'" :ref="setBlankRef" class="blank-space destination blank-area">
+            <span v-else-if="part.type === 'blank'" :ref="setBlankRef" class="blank-area">
             </span>
           </span>
         </div>
       </div>
 
       <div class="options-container">
-        <div class="options-list d-flex flex-wrap justify-content-center gap-2 origin">
+        <div class="options-list d-flex flex-wrap justify-content-center origin">
           <div v-for="(option, index) in options" :key="index" class="word-container">
             <FillWord :text="option" :index="index" :blankElementRef="blankRef" :ref="el => wordRefs[index] = el"
               :isCorrect="isAnswerChecked && currentWordIndex === index && isCorrect"
-              :isIncorrect="isAnswerChecked && currentWordIndex === index && !isCorrect"
-              :isDisabled="isAnswerChecked"
+              :isIncorrect="isAnswerChecked && currentWordIndex === index && !isCorrect" :isDisabled="isAnswerChecked"
               @word-selected="handleWordSelection" @animation-start="animationStarted"
               @animation-end="animationEnded" />
           </div>
@@ -31,7 +30,7 @@
 export default {
   components: {
     Button: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/Button.vue", window.sfcOptions)),
-    FillWord: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/words/FillWord.vue", window.sfcOptions))
+    FillWord: Vue.defineAsyncComponent(() => window["vue3-sfc-loader"].loadModule("./src/components/common/FillWord.vue", window.sfcOptions))
   },
   props: {
     exerciseData: {
@@ -41,132 +40,81 @@ export default {
   },
   setup(props) {
     const { onMounted, ref, reactive, computed } = Vue;
-
-    // Boşluk doldurma egzersiz composable'ını kullan
     const exercise = window.useFillInBlank(props);
-
-    // Blank element reference
     const blankRef = ref(null);
     const selectedWord = ref(null);
     const isAnimating = ref(false);
     const display = ref({});
     const isAnswerChecked = ref(false);
     const isCorrect = ref(false);
-
-    // Store references to all word components
     const wordRefs = reactive({});
     const currentWordIndex = ref(null);
 
-    // Function to set the blank space ref
     const setBlankRef = (el) => {
       if (el) {
         blankRef.value = el;
       }
     };
 
-    // Handle any word selection
     const handleWordSelection = async (data) => {
       if (isAnimating.value) return;
 
-      // Kullanıcı zaten hedefte olan (blank alanda) bir kelimeye tıkladı
       if (data.location === 'destination') {
-        console.log('Destination word clicked', data.index);
         if (currentWordIndex.value === data.index) {
-          // Kelimeyi geri dön
           wordRefs[data.index].moveToOrigin();
-
-          // Seçimi temizle
           selectedWord.value = null;
           currentWordIndex.value = null;
-
-          // Egzersizi güncelle
           exercise.selectOption(null);
         }
       }
-      // Kullanıcı orijinal konumundaki bir kelimeye tıkladı
       else if (data.location === 'origin') {
-        console.log('Origin word clicked', data.index);
-
-        // Eğer blank alanda zaten bir kelime varsa
         if (currentWordIndex.value !== null) {
-          // Sadece farklı bir kelime ise devam et
           if (currentWordIndex.value !== data.index) {
-            console.log('Resetting current word', currentWordIndex.value);
-
-            // Animasyonları eş zamanlı başlat (önce önceki kelimenin geri dönmesini beklemeden)
-            // Mevcut kelimeyi orijinal konumuna gönder
             wordRefs[currentWordIndex.value].moveToOrigin();
-
-            // Hemen yeni kelimeyi ayarla (beklemeden)
             selectedWord.value = data.text;
             currentWordIndex.value = data.index;
-
-            // Yeni kelimeyi blank alana taşı (eş zamanlı)
             wordRefs[data.index].moveToDestination();
-
-            // Egzersizi güncelle
             exercise.selectOption(data.text);
           }
         } else {
-          console.log('Setting first word', data.index);
-
-          // Blank alanda kelime yoksa, bu kelimeyi ayarla
           selectedWord.value = data.text;
           currentWordIndex.value = data.index;
-
-          // Kelimeyi blank alana taşı
           wordRefs[data.index].moveToDestination();
-
-          // Egzersizi güncelle
           exercise.selectOption(data.text);
         }
       }
     };
 
     const selectOption = (data) => {
-      // Bu artık handleWordSelection için bir proxy
       handleWordSelection(data);
     };
 
     const animationStarted = () => {
-      console.log('Animation started');
       isAnimating.value = true;
     };
 
     const animationEnded = (data) => {
-      console.log('Animation ended', data.location);
       isAnimating.value = false;
     };
 
-    // Load exercise data
     const loadExerciseData = () => {
-      // Egzersiz verilerini al
       const { exerciseData } = props;
       if (exerciseData && exerciseData.question) {
         const { question } = exerciseData;
-
-        // Display verilerini ayarla
         display.value = exerciseData.display || {};
       }
     };
 
-    // Component mounted
     onMounted(() => {
       loadExerciseData();
-
-      // Başlangıç kurulumu 
-      console.log('FillInBlankExercise - onMounted - Starting initialization');
       exercise.init();
 
-      // Blank alanını temizle
       if (blankRef.value) {
-        // Blank alanındaki tüm çocuk elementleri temizle
         while (blankRef.value.firstChild) {
           blankRef.value.removeChild(blankRef.value.firstChild);
         }
       }
 
-      // Global API'yi ayarla
       window.activeExerciseComponent = {
         checkAnswer: () => {
           isAnswerChecked.value = true;
@@ -205,24 +153,6 @@ export default {
   display: grid;
   align-content: start;
   grid-template-rows: min-content min-content;
-}
-
-.exercise-component {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.sentence-container {
-  margin-bottom: 2rem;
-}
-
-.sentence-display {
-  display: flex;
-  font-size: 24px;
-  color: white;
 }
 
 .category {
@@ -266,18 +196,6 @@ export default {
   width: 100%;
 }
 
-.destination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.origin {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: center;
-}
-
 .word-container {
   display: flex;
   flex-direction: column;
@@ -288,9 +206,10 @@ export default {
   min-width: 50px;
   z-index: 1;
   position: relative;
-  background: rgba(240, 240, 240, 0.5);
+  background: rgb(55, 70, 79);
   border-radius: 12px;
   padding: 4px;
+  margin: 0 4px;
 }
 
 .blank-area {
@@ -309,6 +228,7 @@ export default {
 @media (min-width: 700px) {
   .exercise-container {
     align-items: center;
+    align-content: center;
   }
 }
 </style>

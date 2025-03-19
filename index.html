@@ -1,29 +1,24 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dil Öğrenme Platformu</title>
+  <title>Language Learning Platform</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <!-- Vue.js CDN değiştirildi - daha güvenilir alternatif -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3.2.36/dist/vue.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
   <link rel="stylesheet" href="./src/styles/theme.css">
-  <!-- Önce registry ve temel composable'ları yükle -->
   <script src="./src/composables/useExerciseRegistry.js"></script>
   <script src="./src/composables/useExercise.js"></script>
-  <!-- Egzersiz kompozisyonlarını yükle -->
   <script src="./src/composables/exercises/useWordMatch.js"></script>
   <script src="./src/composables/exercises/useFillInBlank.js"></script>
   <script src="./src/composables/exercises/useWordBuilder.js"></script>
   <script src="./src/composables/exercises/usePictureMatch.js"></script>
   <script src="./src/composables/exercises/useMatching.js"></script>
-  <!-- Merkezi egzersiz adımlarını tanımla -->
   <script src="./src/store/ExerciseSteps.js"></script>
-  <!-- Store yönetimi -->
   <script src="./src/store/StepStore.js"></script>
 </head>
 
@@ -47,14 +42,8 @@
       },
       customModuleResolvers: [
         (id) => {
-          // Handle composables
           if (id === '../composables/useTheme' || id === './composables/useTheme') {
             return './src/composables/useTheme.js';
-          }
-
-          // Handle store
-          if (id === '../store' || id === './store') {
-            return './src/store/index.js';
           }
 
           if (id.startsWith('/')) {
@@ -65,9 +54,8 @@
       ],
     };
 
-    // Create theme composable
     const useTheme = () => {
-      const isDarkMode = Vue.ref(true); // Set default to dark mode
+      const isDarkMode = Vue.ref(true);
 
       const initializeTheme = () => {
         const savedTheme = localStorage.getItem('theme');
@@ -114,10 +102,8 @@
       };
     };
 
-    // Make composables globally available
     window.useTheme = useTheme;
 
-    // Initialize app with Vue
     const app = Vue.createApp({
       template: '<MainLayout />',
       components: {
@@ -126,16 +112,11 @@
         )
       },
       setup() {
-        // Initialize step store
         window.useStepStore();
         return {};
       }
     });
 
-    // Log before mount - debug purposes
-    console.log("Uygulama başlatılıyor...");
-
-    // Mount app
     app.mount("#app");
   </script>
 </body>

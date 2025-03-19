@@ -1,11 +1,14 @@
 <template>
-  <div class="exercise-component">
-    <div class="words">
-      <div ref="destination" class="destination"></div>
-      <div ref="origin" class="origin">
-        <div v-for="(word, i) in processedWords" :key="i" class="word-container" :data-word-index="i">
+  <div class="d-flex flex-column align-items-start w-100" style="max-width: 600px;">
+    <div class="words w-100 d-grid" style="grid-auto-rows: 1fr; gap: 24px;"
+      :class="{ 'checked': wordBuilder.isChecked.value }">
+      <div ref="destination" class="destination d-flex flex-row flex-wrap align-items-start align-content-start"></div>
+      <div ref="origin" class="origin d-flex flex-row flex-wrap align-items-center justify-content-center">
+        <div v-for="(word, i) in processedWords" :key="i" class="word-container position-relative mx-1"
+          :data-word-index="i">
           <Word :text="word" :index="i" :initial-location="'origin'" @word-click="handleWordClick"
-            @animation-start="wordBuilder.startAnimation" @animation-end="wordBuilder.endAnimation" />
+            @animation-start="wordBuilder.startAnimation" @animation-end="wordBuilder.endAnimation"
+            :disabled="wordBuilder.isChecked.value" />
         </div>
       </div>
     </div>
@@ -14,7 +17,7 @@
 
 <script>
 import { ref, onMounted, watch, computed } from 'vue';
-import Word from '../components/words/Word.vue';
+import Word from '../components/common/Word.vue';
 
 export default {
   name: 'WordBuilderExercise',
@@ -30,71 +33,55 @@ export default {
     const destination = ref(null);
     const origin = ref(null);
 
-    // Process words to ensure they're strings
     const processedWords = computed(() => {
       const rawWords = wordBuilder.wordList.value || [];
       return rawWords.map(word => String(word));
     });
 
-    // Handle word click
     const handleWordClick = ({ element, location, index }) => {
-      if (wordBuilder.isAnimating.value) return;
+      if (wordBuilder.isAnimating.value || wordBuilder.isChecked.value) return;
 
       location === 'origin'
         ? moveWord(element, index, 'origin', 'destination')
         : moveWord(element, index, 'destination', 'origin');
     };
 
-    // Unified move word function
     const moveWord = (wordElement, index, fromLocation, toLocation) => {
-      // Get container
       const container = fromLocation === 'origin'
         ? wordElement.closest('.word-container')
         : origin.value.querySelector(`.word-container[data-word-index="${index}"]`);
 
       if (!container) return;
 
-      // Set up animation
       const id = Date.now();
 
       if (fromLocation === 'origin') {
         container.dataset.id = id;
-
-        // Preserve space in origin
         container.style.height = `${wordElement.offsetHeight}px`;
         container.style.width = `${wordElement.offsetWidth}px`;
       }
 
-      // Find siblings if moving from destination
       const siblings = fromLocation === 'destination'
         ? Array.from(destination.value.querySelectorAll('.word')).filter(w => w !== wordElement)
         : [];
 
-      // Capture initial positions
       const first = wordElement.getBoundingClientRect();
       siblings.forEach(sib => sib.__first = sib.getBoundingClientRect());
 
-      // Move element
       const targetContainer = toLocation === 'destination' ? destination.value : container;
       targetContainer.appendChild(wordElement);
 
-      // Get final positions
       const last = wordElement.getBoundingClientRect();
       siblings.forEach(sib => sib.__last = sib.getBoundingClientRect());
 
-      // Update word state
       wordElement.__component?.setLocation(toLocation);
-
-      // Update logic state
       wordBuilder.moveWord(index, toLocation);
 
-      // Run animations
       wordElement.__component?.performFlip({ first, last });
       siblings.forEach(sib => {
         sib.__component?.performFlip({ first: sib.__first, last: sib.__last });
       });
 
-      // Clean up if moving to origin
       if (toLocation === 'origin') {
         setTimeout(() => {
           container.style.height = "";
@@ -104,14 +91,10 @@ export default {
       }
     };
 
-    // Check answer - now triggers the Mexican wave animation for all words
     const checkAnswer = () => {
       const result = wordBuilder.checkAnswer();
-
-      // Get all words in destination area
       const words = Array.from(destination.value.querySelectorAll('.word'));
-      
-      // Trigger Mexican wave animation on each word
+
       words.forEach((word, idx) => {
         word.__component?.setFeedback(result.isCorrect);
       });
@@ -119,7 +102,6 @@ export default {
       return result;
     };
 
-    // Reset after checking
     const onContinue = () => {
       document.querySelectorAll('.word').forEach(word => {
         word.__component?.resetFeedback();
@@ -132,11 +114,9 @@ export default {
       }
     };
 
-    // Initialize
     onMounted(() => {
       wordBuilder.init();
 
-      // Register with global systems
       window.activeExerciseComponent = {
         checkAnswer,
         onContinue,
@@ -149,7 +129,6 @@ export default {
       }
     });
 
-    // Handle exercise data changes
     watch(() => props.exerciseData, (newData, oldData) => {
       if (newData !== oldData) {
         wordBuilder.init();
@@ -173,54 +152,21 @@ export default {
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;700&display=swap");
 
-.exercise-component {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  width: 100%;
-  max-width: 600px;
+.word-container {
+  background: rgb(55, 70, 79);
+  border-radius: 0.5rem;
+  outline: none;
+  border: none;
 }
 
-.words {
-  display: grid;
-  grid-auto-rows: 1fr;
-  grid-row-gap: 24px;
-  width: 100%;
+.words.checked .word {
+  cursor: default;
+  pointer-events: none;
 }
 
 .destination {
-  display: flex;
-  flex-flow: row wrap;
-  align-items: flex-start;
-  align-content: flex-start;
   min-height: 120px;
   background: repeating-linear-gradient(to bottom, transparent 0, transparent 48px, var(--color-swan) 48px, var(--color-swan) 49px, var(--color-swan) 49px, transparent 52px);
   border-top: 2px solid var(--color-swan);
-
-}
-
-.origin {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: center;
-  align-items: flex-start;
-  max-width: 275px;
-  margin: 0 auto;
-}
-
-.word-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  margin: 0 0.125rem 0.25rem;
-  border-radius: 0.5rem;
-  background: #596265;
-  box-sizing: content-box;
-  padding-bottom: 0.125rem;
-  transition: 0.25s ease;
-}
-
-.word-container:empty {
-  background: #263032;
 }
 </style>

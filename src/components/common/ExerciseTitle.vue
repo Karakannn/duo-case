@@ -28,7 +28,7 @@ export default {
     },
     category: {
       type: String,
-      default: 'YENİ KELİME'
+      default: 'NEW WORD'
     },
     imageUrl: {
       type: String,

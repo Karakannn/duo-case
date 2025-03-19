@@ -18,7 +18,6 @@
 
 <script>
 
-// Import using vue3-sfc-loader instead of path alias
 const SelectionCard = window["vue3-sfc-loader"].loadModule(
   './src/components/common/SelectionCard.vue',
   window.sfcOptions
@@ -98,7 +97,6 @@ export default {
   font-weight: 500;
 }
 
-/* Correct state styling */
 .option-number.correct {
   color: var(--internal-color-success) !important;
   background-color: var(--internal-background-color-success);
@@ -109,14 +107,12 @@ export default {
   color: var(--internal-color-success) !important;
 }
 
-/* Incorrect state styling */
 .option-number.incorrect {
   border: 2px solid var(--internal-border-error, #e86f6f);
   color: var(--internal-color-error, #e86f6f) !important;
 }
 
 
-/* option-number mobile olduğunda hidden olmalı */
 @media (max-width: 700px) {
   .option-number {
     display: none;

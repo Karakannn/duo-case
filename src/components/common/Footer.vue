@@ -1,14 +1,10 @@
 <template>
     <div class="footer"
         :class="{ 'correct-state': showResult && isCorrect, 'incorrect-state': showResult && !isCorrect }">
-        <!-- Result status section -->
         <div class="footer-inner">
             <div class="footer-status" v-if="showResult">
                 <div class="footer-status-inner" :class="isCorrect ? 'correct-answer' : 'incorrect-answer'">
-
-
                     <div class="correct-container" v-if="isCorrect">
-
                         <div class="correct-icon-container">
                             <img class="correct-icon"
                                 src="https://d35aaqx5ub95lt.cloudfront.net/images/b377ec812acb8c96d87d52e8009478ad.svg"
@@ -16,11 +12,11 @@
                         </div>
 
                         <div class="correct-text">
-                            <h5>Tebrikler!</h5>
+                            <h5>Congratulations!</h5>
                             <div class="report">
                                 <img src="https://d35aaqx5ub95lt.cloudfront.net/images/d34573d6f0ce85b0d7d63486550fcf5d.svg"
                                     alt="">
-                                <span class="report-text">BİLDİR</span>
+                                <span class="report-text">REPORT</span>
                             </div>
                         </div>
                     </div>
@@ -34,30 +30,29 @@
 
                         <div class="incorrect-text">
                             <div class="answer" v-if="correctAnswer">
-                                <h5>Doğru cevap:</h5>
+                                <h5>Correct answer:</h5>
                                 <span>{{ correctAnswer }}</span>
                             </div>
 
                             <div class="report">
                                 <img src="https://d35aaqx5ub95lt.cloudfront.net/images/366d3244bdf3cdc1d272f62cc42f5270.svg"
                                     alt="">
-                                <span class="report-text">BİLDİR</span>
+                                <span class="report-text">REPORT</span>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
             <Button class="skip-button" v-if="!showResult" :id="showResult ? 'continueButton' : 'checkAnswerButton'"
                 :variant="'secondary'" @click="handleSkip()">
-                GEC
+                SKIP
             </Button>
 
             <Button :class="'footer-check-button'" :id="showResult ? 'continueButton' : 'checkAnswerButton'"
                 :variant="showResult && !isCorrect ? 'danger' : 'default'"
                 @click="showResult ? handleContinue() : handleCheck()" :disabled="!showResult && !canCheck">
-                {{ showResult ? 'DEVAM ET' : 'KONTROL ET' }}
+                {{ showResult ? 'CONTINUE' : 'CHECK' }}
             </Button>
         </div>
     </div>
@@ -77,16 +72,10 @@ export default {
         correctStreak: { type: Number, default: 0 }
     },
     setup(props) {
-        console.log('Footer initialized with canCheck:', props.canCheck);
-
         const handleCheck = () => {
-            console.log('Check button clicked, canCheck status:', props.canCheck);
             if (!props.canCheck) {
-                console.log('Preventing check - no words selected');
                 return;
             }
-
-            console.log('window.mainLayout', window.mainLayout);
 
             if (window.mainLayout?.checkAnswer) {
                 window.mainLayout.checkAnswer();
@@ -94,9 +83,6 @@ export default {
         };
 
         const handleSkip = () => {
-            console.log('Skip button clicked');
-            
-            // Skip is treated like an incorrect answer
             if (window.mainLayout?.skipExercise) {
                 window.mainLayout.skipExercise();
             }
@@ -106,7 +92,6 @@ export default {
             if (window.mainLayout?.nextExercise) {
                 window.mainLayout.nextExercise();
 
-                // Reset after short delay
                 setTimeout(() => {
                     window.mainLayout?.resetFooter?.();
                 }, 100);
@@ -123,7 +108,6 @@ export default {
 </script>
 
 <style scoped>
-
 .footer-inner {
     position: relative;
     margin: 0 auto;
@@ -144,7 +128,6 @@ export default {
     background-color: rgb(32, 47, 54);
     transform: translateY(100%);
     transition: transform 0.2s ease-out;
-
 }
 
 @keyframes slideUpDebounce {
@@ -202,13 +185,11 @@ export default {
     width: 41px !important;
 }
 
-
 .correct {
     display: flex;
     gap: 16px;
     align-items: center;
 }
-
 
 .correct-text {
     grid-gap: 16px;
@@ -257,10 +238,6 @@ export default {
     font-size: 15px;
 }
 
-
-
-
-
 .incorrect-container {
     grid-gap: 16px;
     display: grid;
@@ -289,7 +266,6 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: start;
-
 }
 
 .incorrect-text h5 {
@@ -345,7 +321,6 @@ export default {
 }
 
 @media (min-width: 700px) {
-
     .footer {
         background-color: var(--color-snow);
         border-top: 2px solid var(--color-swan);
@@ -365,7 +340,6 @@ export default {
 
     .correct-container {
         grid-template-columns: min-content 1fr;
-
     }
 
     .correct-icon-container {
@@ -426,10 +400,7 @@ export default {
     .footer-check-button {
         width: max-content;
     }
-
 }
-
-@media (max-width: 700) {}
 
 .correct-state {
     background-color: var(--color-sea-sponge);

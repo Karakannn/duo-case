@@ -15,7 +15,6 @@
 </template>
 
 <script>
-// Import the selection card component
 const SelectionCard = window["vue3-sfc-loader"].loadModule(
   './src/components/common/SelectionCard.vue',
   window.sfcOptions
@@ -34,11 +33,7 @@ export default {
   },
   setup(props) {
     const { ref, onMounted } = Vue;
-
-    // PictureMatch composable'ını kullan
     const pictureMatch = window.usePictureMatch(props);
-
-    // State
     const display = ref({
       type: 'title',
       title: "Görsele uygun kelimeyi seçin",
@@ -52,53 +47,34 @@ export default {
     const selectedOption = ref("");
     const options = ref([]);
 
-    // Prevent selection when answer is checked
     const handleOptionSelect = (option) => {
       if (!isAnswerChecked.value) {
         selectedOption.value = option.name;
-
-        // Enable the "Kontrol Et" button when a card is selected
         if (window.mainLayout) {
           window.mainLayout.setCanCheck(true);
-          console.log('Card selected:', option.name, '- Enabling Kontrol Et button');
         }
       }
     };
 
-    // Load exercise data
     const loadExerciseData = () => {
       const { exerciseData } = props;
-
       if (exerciseData && exerciseData.question) {
         const { question } = exerciseData;
-
-        // Set options directly instead of using setOptions method
         options.value = question.options || [];
-
-        // Set correct option directly instead of using setCorrectOption method
         correctOptionName.value = question.correctOption || '';
-
-        // Set question image URL
         questionImageUrl.value = question.imageUrl || '';
-
-        // Set display data
         if (exerciseData.display) {
           display.value = exerciseData.display;
         }
       }
     };
 
-    // Component mounted
     onMounted(() => {
       loadExerciseData();
-
-      // Global API'yi ayarla
       window.activeExerciseComponent = {
         checkAnswer: () => {
           isAnswerChecked.value = true;
           const isCorrect = selectedOption.value === correctOptionName.value;
-
-          // Return structured result that MainLayout expects
           return {
             isCorrect: isCorrect,
             correctAnswer: correctOptionName.value
@@ -107,8 +83,6 @@ export default {
         onContinue: () => {
           isAnswerChecked.value = false;
           selectedOption.value = '';
-
-          // Disable the "Kontrol Et" button when resetting
           if (window.mainLayout) {
             window.mainLayout.setCanCheck(false);
           }
@@ -147,9 +121,6 @@ export default {
   font-size: 19px;
 }
 
-
-
-/* Styles needed for the card content */
 .card-image-container {
   align-items: center;
   display: flex;
@@ -182,7 +153,6 @@ export default {
 .card-text {
   font-size: 16px;
   font-weight: 500;
-
 }
 
 .card-text-index {
@@ -200,7 +170,6 @@ export default {
 }
 
 @media (min-width: 700px) {
-
   .picture-card {
     height: fit-content;
   }
@@ -224,6 +193,12 @@ export default {
 
   .card-text-index {
     display: inline-flex;
+  }
+}
+
+@media (max-width: 700px) {
+  .picture-card {
+    height: 100% !important;
   }
 }
 </style>

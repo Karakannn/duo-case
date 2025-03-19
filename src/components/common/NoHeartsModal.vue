@@ -2,22 +2,20 @@
   <div v-if="show" class="no-hearts-modal">
     <div class="modal-content-container">
       <div class="modal-content">
-        <!-- Hearts Display -->
+
         <div class="hearts-display">
           <div v-for="(heart, index) in totalHearts" :key="index" class="heart-icon">
             <img :src="emptyHeartIcon" alt="Empty Heart" />
           </div>
         </div>
 
-        <!-- Message -->
         <div class="message-container">
-          <h2 class="title">Canların Tükendi!</h2>
-          <p class="subtitle">Yeniden başlamak için TEKRAR BAŞLA butonuna tıkla.</p>
+          <h2 class="title">Out of Hearts!</h2>
+          <p class="subtitle">Click the RESTART button to begin again.</p>
         </div>
 
-        <!-- Restart Button -->
         <button class="restart-button w-100" @click="handleRestart">
-          TEKRAR BAŞLA
+          RESTART
         </button>
       </div>
     </div>

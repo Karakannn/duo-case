@@ -8,15 +8,19 @@
 
       <div class="progress-container">
         <div class="progress" style="height: 16px;">
-          <div class="progress-bar-inner" 
-               :style="`width: ${progress}%`" 
-               :class="getProgressColorClass(progress)"
-               role="progressbar"></div>
+          <div class="progress-bar-inner" :style="`width: ${progress}%`" :class="getProgressColorClass(progress)"
+            role="progressbar">
+            <div class="stars-container" v-if="showStars">
+              <span class="star star-1">✦</span>
+              <span class="star star-2">✧</span>
+              <span class="star star-3">✦</span>
+            </div>
+            <div class="ping-animation" v-if="showPing"></div>
+          </div>
         </div>
 
-        <!-- Streak göstergesi - 2 ve üzeri streak varsa göster -->
-        <div v-if="correctStreak >= 2" class="streak-counter">
-          <span>ART ARDA {{ correctStreak }}</span>
+        <div v-if="correctStreak >= 2" class="streak-counter" :class="getCounterColorClass(progress)">
+          <span>STREAK {{ correctStreak }}</span>
         </div>
       </div>
 
@@ -47,15 +51,22 @@ export default {
     }
   },
   setup(props) {
-    const { ref, watchEffect, computed } = Vue;
-
-    // Hearts değerini tutacak lokal değişken
+    const { ref, watchEffect } = Vue;
     const localHearts = ref(props.hearts);
+    const showStars = ref(false);
+    const showPing = ref(false);
+    const prevProgress = ref(props.progress);
 
-    // Progress durumuna göre renk sınıfını döndüren hesaplanmış özellik
+    const getCounterColorClass = (progressValue) => {
+      if (progressValue >= 66.67) {
+        return 'counter-orange';
+      } else if (progressValue >= 33.33) {
+        return 'counter-yellow';
+      }
+      return 'counter-green';
+    };
+
     const getProgressColorClass = (progressValue) => {
-      console.log('Progress değeri:', progressValue);
-      
       if (progressValue >= 66.67) {
         return 'progress-orange';
       } else if (progressValue >= 33.33) {
@@ -64,27 +75,39 @@ export default {
       return 'progress-green';
     };
 
-    // Props'tan ve globalStore'dan hearts değerini izle
     watchEffect(() => {
-      // Props'tan gelen hearts değerini kullan
       localHearts.value = props.hearts;
 
-      // Eğer globalStore varsa ve hearts değeri farklıysa, globalStore'dan al
       if (window.globalStore && typeof window.globalStore.hearts !== 'undefined') {
         if (localHearts.value !== window.globalStore.hearts) {
           localHearts.value = window.globalStore.hearts;
         }
       }
+      
+      // Check if progress has increased
+      if (props.progress > prevProgress.value) {
+        showStars.value = true;
+        showPing.value = true;
+        setTimeout(() => {
+          showStars.value = false;
+        }, 2000); // Hide stars after animation completes
+        setTimeout(() => {
+          showPing.value = false;
+        }, 1500); // Hide ping after animation completes
+      }
+      prevProgress.value = props.progress;
     });
 
-    // Hearts değerini güncellemek için global fonksiyon
     window.updateHeaderHearts = (value) => {
       localHearts.value = value;
     };
 
     return {
       localHearts,
-      getProgressColorClass
+      getProgressColorClass,
+      getCounterColorClass,
+      showStars,
+      showPing
     };
   }
 }
@@ -111,6 +134,7 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: visible;
 }
 
 .progress {
@@ -120,6 +144,7 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) inset;
+  overflow: visible;
 }
 
 .progress-bar-inner {
@@ -128,9 +153,10 @@ export default {
   border-radius: 8px;
   transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
   box-shadow: 0 0 5px rgba(255, 75, 75, 0.5);
+  position: relative;
+  overflow: visible;
 }
 
-/* Progress renk sınıfları */
 .progress-green {
   background-color: var(--color-owl);
 }
@@ -151,6 +177,18 @@ export default {
   font-weight: 900;
   color: var(--color-owl);
   animation: pulse 0.2s ease;
+}
+
+.streak-counter.counter-green {
+  color: var(--color-owl);
+}
+
+.streak-counter.counter-yellow {
+  color: #FFD700;
+}
+
+.streak-counter.counter-orange {
+  color: rgb(255, 171, 51);
 }
 
 @keyframes pulse {
@@ -177,6 +215,93 @@ export default {
 .cancel-icon {
   height: 18px;
   width: 18px;
+}
+
+.stars-container {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  color: #FFD700;
+  font-size: 16px;
+  animation: float-away 2s ease-out forwards;
+}
+
+.star-1 {
+  right: -5px;
+  top: -15px;
+  animation-delay: 0.1s;
+}
+
+.star-2 {
+  right: 0;
+  top: -5px;
+  animation-delay: 0.3s;
+}
+
+.star-3 {
+  right: -10px;
+  top: 0;
+  animation-delay: 0.5s;
+}
+
+@keyframes float-away {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.2) translate(0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translate(20px, -30px);
+  }
+}
+
+.ping-animation {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translate(50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 10;
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+.progress-green .ping-animation {
+  background-color: var(--color-owl);
+}
+
+.progress-yellow .ping-animation {
+  background-color: var(--color-yellow);
+}
+
+.progress-orange .ping-animation {
+  background-color: var(--color-orange);
+}
+
+@keyframes ping {
+  0% {
+    transform: translate(50%, -50%) scale(0);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(50%, -50%) scale(2.5);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(50%, -50%) scale(4);
+    opacity: 0;
+  }
 }
 
 @media (min-width: 700px) {

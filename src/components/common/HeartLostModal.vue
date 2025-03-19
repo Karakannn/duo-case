@@ -2,7 +2,6 @@
   <div v-if="show" class="heart-lost-modal">
     <div class="modal-content-container">
       <div class="modal-content">
-        <!-- Hearts Display -->
         <div class="hearts-display">
           <div v-for="(heart, index) in totalHearts" :key="index" class="heart-icon">
             <img :src="index < remainingHearts ? filledHeartIcon : emptyHeartIcon"
@@ -10,15 +9,13 @@
           </div>
         </div>
 
-        <!-- Message -->
         <div class="message-container">
-          <h2 class="title">Her hata 1 cana mal olur!</h2>
-          <p class="subtitle">Canlarını korumak için dikkatli ol ve odaklan.<br>Yaparsın sen!</p>
+          <h2 class="title">Each mistake costs 1 heart!</h2>
+          <p class="subtitle">Be careful and stay focused to protect your hearts.<br>You can do this!</p>
         </div>
 
-        <!-- Continue Button -->
         <button class="continue-button w-100" @click="handleContinue">
-          DEVAM
+          CONTINUE
         </button>
       </div>
     </div>
@@ -46,7 +43,7 @@ export default {
   emits: ['continue'],
   setup(props, { emit }) {
     const filledHeartIcon = "https://d35aaqx5ub95lt.cloudfront.net/images/hearts/7631e3ee734dd4fe7792626b59457fa4.svg";
-    const emptyHeartIcon = "	https://d35aaqx5ub95lt.cloudfront.net/images/hearts/e38b9a1ee10d36ff6e57a66ae97e91ff.svg";
+    const emptyHeartIcon = "https://d35aaqx5ub95lt.cloudfront.net/images/hearts/e38b9a1ee10d36ff6e57a66ae97e91ff.svg";
 
     function handleContinue() {
       emit('continue');
