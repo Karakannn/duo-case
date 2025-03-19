@@ -117,6 +117,11 @@ export default {
         isAnimating.value = true;
 
         if (isCorrect) {
+          // Play correct sound when a match is correct
+          if (window.playCorrectSound) {
+            window.playCorrectSound();
+          }
+          
           correctMatches.value = [selectedLeft.value, selectedRight.value];
           const tempLeftIndex = selectedLeft.value;
           const tempRightIndex = selectedRight.value;
@@ -137,6 +142,11 @@ export default {
             isAnimating.value = false;
           }, 1000);
         } else {
+          // Play wrong sound when a match is incorrect
+          if (window.playWrongSound) {
+            window.playWrongSound();
+          }
+          
           wrongMatches.value.left = [selectedLeft.value];
           wrongMatches.value.right = [selectedRight.value];
 

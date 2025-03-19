@@ -72,6 +72,40 @@ export default {
         correctStreak: { type: Number, default: 0 }
     },
     setup(props) {
+
+
+        Vue.onMounted(() => {
+            if (!window.playCorrectSound) {
+                window.playCorrectSound = function () {
+                    const sound = new Audio('./src/assets/sfx/correct.mp3');
+                    sound.volume = 1.0;
+                    sound.play().catch(e => console.error("Error playing correct sound:", e));
+                };
+            }
+
+            if (!window.playWrongSound) {
+                window.playWrongSound = function () {
+                    const sound = new Audio('./src/assets/sfx/wrong.mp3');
+                    sound.volume = 1.0;
+                    sound.play().catch(e => console.error("Error playing wrong sound:", e));
+                };
+            }
+        });
+
+        Vue.watch(
+            [() => props.showResult, () => props.isCorrect],
+            ([newShowResult, newIsCorrect], [oldShowResult, oldIsCorrect]) => {
+                // Play sound when result is shown
+                if (newShowResult && !oldShowResult) {
+                    if (newIsCorrect) {
+                        window.playCorrectSound?.();
+                    } else {
+                        window.playWrongSound?.();
+                    }
+                }
+            }
+        );
+
         const handleCheck = () => {
             if (!props.canCheck) {
                 return;

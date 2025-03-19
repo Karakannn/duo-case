@@ -56,6 +56,37 @@ export default {
     const currentExerciseData = ref(null);
     const correctStreak = ref(0);
 
+    const correctSound = ref(null);
+    const wrongSound = ref(null);
+
+    const playCorrectSound = () => {
+      try {
+        if (correctSound.value) {
+          correctSound.value.currentTime = 0;
+          correctSound.value.play();
+        } else {
+          correctSound.value = new Audio('./src/assets/sfx/correct.mp3');
+          correctSound.value.play();
+        }
+      } catch (e) {
+        console.error("Error playing correct sound:", e);
+      }
+    };
+
+    const playWrongSound = () => {
+      try {
+        if (wrongSound.value) {
+          wrongSound.value.currentTime = 0;
+          wrongSound.value.play();
+        } else {
+          wrongSound.value = new Audio('./src/assets/sfx/wrong.mp3');
+          wrongSound.value.play();
+        }
+      } catch (e) {
+        console.error("Error playing wrong sound:", e);
+      }
+    };
+
     const buttonText = computed(() => {
       if (showResult.value) {
         return isCorrect.value ? 'CONTINUE' : 'GOT IT';
@@ -151,6 +182,12 @@ export default {
       showResult.value = true;
       correctAnswer.value = result.correctAnswer;
 
+      if (result.isCorrect) {
+        playCorrectSound();
+      } else {
+        playWrongSound();
+      }
+
       const currentStep = stepStore?.currentStepId?.value || 0;
       const nextStepData = window.exerciseStepsManager?.getStepById?.(currentStep + 1);
       const stepsData = window.exerciseStepsManager?.getActiveSequenceSteps?.() || [];
@@ -215,6 +252,8 @@ export default {
 
       isCorrect.value = false;
       showResult.value = true;
+
+      playWrongSound();
 
       const currentStepData = window.exerciseStepsManager.getStepById(stepStore.currentStepId.value);
       const isMatchingExercise = currentStepData?.type === 'matching';
@@ -299,7 +338,9 @@ export default {
       closeModal,
       nextExercise,
       skipExercise,
-      restartExercise
+      restartExercise,
+      playCorrectSound,
+      playWrongSound
     };
   }
 };
