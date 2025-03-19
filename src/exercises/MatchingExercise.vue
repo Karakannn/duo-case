@@ -11,11 +11,14 @@
       </div>
 
       <SelectionCard v-for="(item, index) in leftItems" :key="`left-${index}`" :isSelected="selectedLeft === index"
-        :isMatched="matchedItems.left.includes(index)" :isCorrect="correctMatches.includes(index)" 
+        :isMatched="matchedItems.left.includes(index)" :isCorrect="correctMatches.includes(index)"
         :isDisabled="matchedItems.left.includes(index) || (isAnimating && (index === selectedLeft || wrongMatches.left.includes(index)))"
-        @select="selectItem('left', index)" class="match-item w-100 text-center d-flex align-items-center justify-content-center h-100">
+        @select="selectItem('left', index)"
+        class="match-item w-100 text-center d-flex align-items-center justify-content-center h-100">
         <div class="card-text-container w-100 d-flex align-items-center justify-content-between">
-          <span class="card-text-index d-none d-md-inline-flex align-items-center justify-content-center rounded-2 fw-bold">{{ index + 1 }}</span>
+          <span
+            class="card-text-index d-none d-md-inline-flex align-items-center justify-content-center rounded-2 fw-bold">{{
+            index + 1 }}</span>
           <div class="card-text w-100 d-flex align-items-center justify-content-center">
             <span class="fs-5 fw-medium">{{ item.text }}</span>
           </div>
@@ -23,11 +26,13 @@
       </SelectionCard>
 
       <SelectionCard v-for="(item, index) in rightItems" :key="`right-${index}`" :isSelected="selectedRight === index"
-        :isMatched="matchedItems.right.includes(index)" :isCorrect="correctMatches.includes(index)" 
+        :isMatched="matchedItems.right.includes(index)" :isCorrect="correctMatches.includes(index)"
         :isDisabled="matchedItems.right.includes(index) || (isAnimating && (index === selectedRight || wrongMatches.right.includes(index)))"
-        @select="selectItem('right', index)" class="match-item w-100 text-center d-flex align-items-center justify-content-center h-100">
+        @select="selectItem('right', index)"
+        class="match-item w-100 text-center d-flex align-items-center justify-content-center h-100">
         <div class="card-text-container w-100 d-flex align-items-center justify-content-between">
-          <span class="card-text-index d-inline-flex align-items-center justify-content-center rounded-2 fw-bold">{{ index + 1 }}</span>
+          <span class="card-text-index d-inline-flex align-items-center justify-content-center rounded-2 fw-bold">{{
+            index + 1 }}</span>
           <div class="card-text w-100 d-flex align-items-center justify-content-center">
             <span class="fs-5 fw-medium">{{ item.text }}</span>
           </div>
@@ -67,7 +72,7 @@ export default {
     onMounted(() => {
       // Initialize with the current exercise data
       matchingExercise.init();
-      
+
       // Make the component available globally for the check answer function
       window.activeExerciseComponent = {
         checkAnswer: () => {
@@ -117,15 +122,12 @@ export default {
         isAnimating.value = true;
 
         if (isCorrect) {
-          // Play correct sound when a match is correct
-          if (window.playCorrectSound) {
-            window.playCorrectSound();
-          }
-          
+
+
           correctMatches.value = [selectedLeft.value, selectedRight.value];
           const tempLeftIndex = selectedLeft.value;
           const tempRightIndex = selectedRight.value;
-          
+
           if (matchedItems.value.left.length === leftItems.value.length - 1) {
             if (window.mainLayout) {
               window.mainLayout.canCheck = true;
@@ -142,11 +144,7 @@ export default {
             isAnimating.value = false;
           }, 1000);
         } else {
-          // Play wrong sound when a match is incorrect
-          if (window.playWrongSound) {
-            window.playWrongSound();
-          }
-          
+
           wrongMatches.value.left = [selectedLeft.value];
           wrongMatches.value.right = [selectedRight.value];
 
@@ -229,27 +227,59 @@ export default {
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes shake {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(5px); }
-  75% { transform: translateX(-5px); }
-  100% { transform: translateX(0); }
+  0% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  50% {
+    transform: translateX(5px);
+  }
+
+  75% {
+    transform: translateX(-5px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 

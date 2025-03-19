@@ -111,17 +111,18 @@ watch(() => props.show, (newValue) => {
   padding: 30px;
   border-radius: 16px;
   margin: 24px;
-  background-color: white;
+  background-color: var(--color-snow);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  z-index: 2;
-  position: relative;
 }
 
 .modal-content {
-  display: flex;
-  flex-direction: column;
   align-items: center;
+  display: flex;
+  background-color: var(--color-snow);
+  flex-direction: column;
   min-width: 380px;
+  width: 100%;
+  border: none;
 }
 
 .trophy-icon {
@@ -161,13 +162,13 @@ watch(() => props.show, (newValue) => {
 }
 
 .subtitle {
-  color: #777;
+  color: var(--color-eel);
   font-size: 17px;
   text-align: center;
 }
 
 .restart-button {
-  background-color: #58cc02;
+  background-color: var(--color-owl);
   color: white;
   border: none;
   border-radius: 12px;
@@ -176,7 +177,7 @@ watch(() => props.show, (newValue) => {
   font-weight: bold;
   cursor: pointer;
   width: 100%;
-  box-shadow: 0 4px 0 #58a700;
+  box-shadow: 0 4px 0 var(--color-owl);
   transition: all 0.2s;
 }
 

@@ -123,7 +123,7 @@ export default {
 }
 
 .continue-button {
-  background-color: #58cc02;
+  background-color: var(--color-owl);
   color: white;
   border: none;
   border-radius: 12px;
@@ -132,7 +132,7 @@ export default {
   font-weight: bold;
   cursor: pointer;
   width: 100%;
-  box-shadow: 0 4px 0 #58a700;
+  box-shadow: 0 4px 0 var(--color-owl);
   transition: all 0.2s;
 }
 
