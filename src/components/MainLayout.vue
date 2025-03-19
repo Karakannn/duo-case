@@ -58,14 +58,24 @@ export default {
 
     const correctSound = ref(null);
     const wrongSound = ref(null);
+    const noHeartsSound = ref(null);
+    const lessonCompleteSound = ref(null);
+    const soundsLoaded = ref(false);
+    
+    const lastPlayTime = ref({
+      correct: 0,
+      wrong: 0,
+      noHearts: 0,
+      lessonComplete: 0
+    });
+
+    const DEBOUNCE_TIME = 300;
 
     const playCorrectSound = () => {
       try {
-        if (correctSound.value) {
-          correctSound.value.currentTime = 0;
-          correctSound.value.play();
-        } else {
-          correctSound.value = new Audio('./src/assets/sfx/correct.mp3');
+        const now = Date.now();
+        if (correctSound.value && (now - lastPlayTime.value.correct > DEBOUNCE_TIME)) {
+          lastPlayTime.value.correct = now;
           correctSound.value.play();
         }
       } catch (e) {
@@ -75,15 +85,37 @@ export default {
 
     const playWrongSound = () => {
       try {
-        if (wrongSound.value) {
-          wrongSound.value.currentTime = 0;
-          wrongSound.value.play();
-        } else {
-          wrongSound.value = new Audio('./src/assets/sfx/wrong.mp3');
+        const now = Date.now();
+        if (wrongSound.value && (now - lastPlayTime.value.wrong > DEBOUNCE_TIME)) {
+          lastPlayTime.value.wrong = now;
           wrongSound.value.play();
         }
       } catch (e) {
         console.error("Error playing wrong sound:", e);
+      }
+    };
+
+    const playNoHeartsSound = () => {
+      try {
+        const now = Date.now();
+        if (noHeartsSound.value && (now - lastPlayTime.value.noHearts > DEBOUNCE_TIME)) {
+          lastPlayTime.value.noHearts = now;
+          noHeartsSound.value.play();
+        }
+      } catch (e) {
+        console.error("Error playing no hearts sound:", e);
+      }
+    };
+
+    const playLessonCompleteSound = () => {
+      try {
+        const now = Date.now();
+        if (lessonCompleteSound.value && (now - lastPlayTime.value.lessonComplete > DEBOUNCE_TIME)) {
+          lastPlayTime.value.lessonComplete = now;
+          lessonCompleteSound.value.play();
+        }
+      } catch (e) {
+        console.error("Error playing lesson complete sound:", e);
       }
     };
 
@@ -144,6 +176,32 @@ export default {
 
       progress.value = 0;
       correctStreak.value = 0;
+      correctSound.value = new Audio('./src/assets/sfx/correct.mp3');
+      wrongSound.value = new Audio('./src/assets/sfx/wrong.mp3');
+      noHeartsSound.value = new Audio('./src/assets/sfx/no-hearts.mp3');
+      lessonCompleteSound.value = new Audio('./src/assets/sfx/lesson-complete.mp3');
+      
+      correctSound.value.addEventListener('canplaythrough', () => {
+        soundsLoaded.value = true;
+      });
+      
+      wrongSound.value.addEventListener('canplaythrough', () => {
+        soundsLoaded.value = true;
+      });
+
+      noHeartsSound.value.addEventListener('canplaythrough', () => {
+        soundsLoaded.value = true;
+      });
+
+      lessonCompleteSound.value.addEventListener('canplaythrough', () => {
+        soundsLoaded.value = true;
+      });
+      
+      // Force preloading
+      correctSound.value.load();
+      wrongSound.value.load();
+      noHeartsSound.value.load();
+      lessonCompleteSound.value.load();
 
       if (stepStore) {
         const globalStep = window.globalStepId || 1;
@@ -189,20 +247,23 @@ export default {
       }
 
       const currentStep = stepStore?.currentStepId?.value || 0;
-      const nextStepData = window.exerciseStepsManager?.getStepById?.(currentStep + 1);
       const stepsData = window.exerciseStepsManager?.getActiveSequenceSteps?.() || [];
-      const isLastStep = currentStep >= stepsData.length;
+
+      const isLastStep = currentStep === stepsData[stepsData.length - 1]?.id;
+
+      const nextStepData = window.exerciseStepsManager?.getStepById?.(currentStep + 1);
 
       if (isCorrect.value) {
         correctStreak.value++;
 
-        if (nextStepData?.stepProgress !== undefined) {
+        if (nextStepData) {
           progress.value = nextStepData.stepProgress;
-        } else {
+        } else if (isLastStep) {
           progress.value = 100;
 
           setTimeout(() => {
             showCompletionModal.value = true;
+            playLessonCompleteSound();
           }, 500);
         }
       } else {
@@ -214,6 +275,9 @@ export default {
 
         if (hearts.value > 0) {
           showHeartLostModal.value = true;
+        } else {
+          showNoHeartsModal.value = true;
+          playNoHeartsSound();
         }
       }
 
@@ -227,7 +291,8 @@ export default {
       showResult.value = false;
 
       const stepsData = window.exerciseStepsManager.getActiveSequenceSteps();
-      const isLastStep = stepStore.currentStepId.value >= stepsData.length;
+
+      const isLastStep = stepStore.currentStepId.value === stepsData[stepsData.length - 1]?.id;
 
       if (isCorrect.value) {
         if (isLastStep) {
@@ -316,6 +381,7 @@ export default {
     watch(hearts, (newVal) => {
       if (newVal <= 0) {
         showNoHeartsModal.value = true;
+        playNoHeartsSound();
       }
     });
 
@@ -340,7 +406,9 @@ export default {
       skipExercise,
       restartExercise,
       playCorrectSound,
-      playWrongSound
+      playWrongSound,
+      playNoHeartsSound,
+      playLessonCompleteSound
     };
   }
 };

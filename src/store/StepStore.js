@@ -88,11 +88,20 @@
     }
 
     function nextStep() {
+      
+      const stepsData = window.exerciseStepsManager?.getActiveSequenceSteps?.() || [];
+      
       if (currentStepId.value < totalSteps.value) {
-        currentStepId.value++;
+        const currentIndex = stepsData.findIndex(step => step.id === currentStepId.value);
+        if (currentIndex !== -1 && currentIndex < stepsData.length - 1) {
+          currentStepId.value = stepsData[currentIndex + 1].id;
+        } else {
+          currentStepId.value++;
+        }
       } else {
-        currentStepId.value = 1;
+        currentStepId.value = stepsData[0]?.id || 1;
       }
+      
       updateGlobalStep(currentStepId.value);
       return currentStep.value;
     }

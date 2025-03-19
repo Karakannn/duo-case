@@ -83,17 +83,16 @@ export default {
           localHearts.value = window.globalStore.hearts;
         }
       }
-      
-      // Check if progress has increased
+
       if (props.progress > prevProgress.value) {
         showStars.value = true;
         showPing.value = true;
         setTimeout(() => {
           showStars.value = false;
-        }, 2000); // Hide stars after animation completes
+        }, 2000);
         setTimeout(() => {
           showPing.value = false;
-        }, 1500); // Hide ping after animation completes
+        }, 1500);
       }
       prevProgress.value = props.progress;
     });
@@ -197,7 +196,7 @@ export default {
   }
 
   50% {
-    transform: scale(1.1);
+    transform: scale(1.3);
   }
 
   100% {
@@ -255,10 +254,12 @@ export default {
     opacity: 0;
     transform: scale(0.5) translate(0, 0);
   }
+
   20% {
     opacity: 1;
     transform: scale(1.2) translate(0, 0);
   }
+
   100% {
     opacity: 0;
     transform: scale(0.8) translate(20px, -30px);
@@ -294,10 +295,12 @@ export default {
     transform: translate(50%, -50%) scale(0);
     opacity: 1;
   }
+
   70% {
     transform: translate(50%, -50%) scale(2.5);
     opacity: 0.7;
   }
+
   100% {
     transform: translate(50%, -50%) scale(4);
     opacity: 0;
